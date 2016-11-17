@@ -27,6 +27,8 @@ public class Argument {
 
     private String value;
     private SynapsePath expression;
+    private boolean deepCheck = true;
+    private boolean isLiteral = false;
 
     public String getValue() {
         return value;
@@ -44,5 +46,20 @@ public class Argument {
         this.expression = expression;
     }
 
+    public boolean isDeepCheck() {
+        return deepCheck;
+    }
+
+    public void setDeepCheck(boolean deepCheck) {
+        this.deepCheck = deepCheck;
+    }
+
+    public boolean isLiteral() {
+        return isLiteral;
+    }
+
+    public void setLiteral(boolean isLiteral) {
+        this.isLiteral = isLiteral;
+    }
 
 }
