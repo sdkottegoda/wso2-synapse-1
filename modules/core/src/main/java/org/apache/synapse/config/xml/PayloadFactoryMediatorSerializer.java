@@ -44,6 +44,8 @@ public class PayloadFactoryMediatorSerializer extends AbstractMediatorSerializer
     private final String XML = "xml";
     private final String JSON = "json";
     private final String TEXT = "text";
+    private final String DEEP_CHECK = "deepCheck";
+    private final String LITERAL = "literal";
 
     private String getEvaluator(String pathType) {
         if(pathType == SynapsePath.JSON_PATH) {
@@ -109,6 +111,14 @@ public class PayloadFactoryMediatorSerializer extends AbstractMediatorSerializer
                     continue;
                 }
                 OMElement argElem = fac.createOMElement(ARG, synNS);
+                //add deepcheck attribute only it is false. (because default value is true)
+                if (!arg.isDeepCheck()) {
+                    argElem.addAttribute(fac.createOMAttribute(DEEP_CHECK, nullNS, "false"));
+                }
+                //add literal attribute only it is true. (because default value is false)
+                if (arg.isLiteral()) {
+                    argElem.addAttribute(fac.createOMAttribute(LITERAL, nullNS, "true"));
+                }
                 if(null != arg.getExpression() && null != arg.getExpression().getPathType()) {
                     argElem.addAttribute(fac.createOMAttribute(EVALUATOR, nullNS, getEvaluator(arg.getExpression().getPathType())));
                 } else if(null == arg.getExpression() && arg.getValue() != null) {
