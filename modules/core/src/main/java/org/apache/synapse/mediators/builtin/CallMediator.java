@@ -77,6 +77,7 @@ public class CallMediator extends AbstractMediator implements ManagedLifecycle {
 
     private SynapseEnvironment synapseEnv;
 
+    //State whether actual endpoint(when null) is wrapped by a default endpoint
     private boolean isWrappingEndpointCreated;
 
     /**
