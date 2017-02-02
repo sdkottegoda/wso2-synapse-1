@@ -53,6 +53,13 @@ public class MediatorLog implements SynapseLog {
     }
 
     public boolean isDebugEnabled() {
+        if (defaultLog.isDebugEnabled()) {
+            return true;
+        }
+
+        if (synCtx.getServiceLog() != null && synCtx.getServiceLog().isDebugEnabled()) {
+            return true;
+        }
         return defaultLog.isDebugEnabled();
     }    
 
@@ -115,7 +122,7 @@ public class MediatorLog implements SynapseLog {
      */
     public void auditDebug(Object msg) {
         defaultLog.debug(msg);
-        if (synCtx.getServiceLog() != null) {
+        if (synCtx.getServiceLog() != null && synCtx.getServiceLog().isDebugEnabled()) {
             synCtx.getServiceLog().debug(msg);
         }
         if (traceOn) {
