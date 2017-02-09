@@ -41,8 +41,8 @@ public class SSLServerConnFactoryBuilder extends ServerConnFactoryBuilder {
 
 
     public ServerConnFactoryBuilder parseSSL(OMElement keyStoreEl, OMElement trustStoreEl,
-                                             OMElement clientAuthEl, OMElement httpsProtocolsEl,
-                                             String sslProtocol, OMElement cvp) throws AxisFault {
+                                             OMElement clientAuthEl, OMElement httpsProtocolsEl, String sslProtocol,
+            OMElement cvp, OMElement preferredCiphers) throws AxisFault {
         final String cvEnable = cvp != null ?
                                 cvp.getAttribute(new QName("enable")).getAttributeValue() : null;
         RevocationVerificationManager revocationVerifier = null;
@@ -71,7 +71,9 @@ public class SSLServerConnFactoryBuilder extends ServerConnFactoryBuilder {
             }
             revocationVerifier = new RevocationVerificationManager(cacheSize, cacheDelay);
         }
-        ssl = createSSLContext(keyStoreEl, trustStoreEl, clientAuthEl, httpsProtocolsEl, revocationVerifier, sslProtocol);
+        ssl = createSSLContext(keyStoreEl, trustStoreEl, clientAuthEl, httpsProtocolsEl, preferredCiphers,
+                revocationVerifier,
+                sslProtocol);
         return this;
     }
 
