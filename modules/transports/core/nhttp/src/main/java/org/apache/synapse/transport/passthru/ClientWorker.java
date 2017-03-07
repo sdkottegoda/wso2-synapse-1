@@ -1,17 +1,17 @@
 /**
- * Copyright (c) 2009, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
- * <p>
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- * <p>
- * http://www.apache.org/licenses/LICENSE-2.0
- * <p>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ *  Copyright (c) 2009, WSO2 Inc. (http://www.wso2.org) All Rights Reserved.
+ *
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
  */
 
 package org.apache.synapse.transport.passthru;
@@ -24,6 +24,7 @@ import org.apache.axis2.AxisFault;
 import org.apache.axis2.Constants;
 import org.apache.axis2.addressing.AddressingConstants;
 import org.apache.axis2.builder.BuilderUtil;
+import org.apache.axis2.context.ConfigurationContext;
 import org.apache.axis2.context.MessageContext;
 import org.apache.axis2.description.Parameter;
 import org.apache.axis2.description.WSDL2Constants;
@@ -66,22 +67,22 @@ public class ClientWorker implements Runnable {
         this.response = response;
         this.expectEntityBody = response.isExpectResponseBody();
 
-        Map<String, String> headers = response.getHeaders();
+        Map<String,String> headers = response.getHeaders();
         Map excessHeaders = response.getExcessHeaders();
 
-        String oriURL = headers.get(PassThroughConstants.LOCATION);
+		String oriURL = headers.get(PassThroughConstants.LOCATION);
         if (outMsgCtx.getProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONNECTION) != null) {
             ((NHttpServerConnection) outMsgCtx.getProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONNECTION)).
-                    getContext().setAttribute(PassThroughConstants.CLIENT_WORKER_INIT_TIME, System.currentTimeMillis());
+                       getContext().setAttribute(PassThroughConstants.CLIENT_WORKER_INIT_TIME, System.currentTimeMillis());
         }
         // Special casing 301, 302, 303 and 307 scenario in following section. Not sure whether it's the correct fix,
-        // but this fix makes it possible to do http --> https redirection.
+		// but this fix makes it possible to do http --> https redirection.
         if (oriURL != null && ((response.getStatus() != HttpStatus.SC_MOVED_TEMPORARILY) &&
-                               (response.getStatus() != HttpStatus.SC_MOVED_PERMANENTLY) &&
-                               (response.getStatus() != HttpStatus.SC_CREATED) &&
-                               (response.getStatus() != HttpStatus.SC_SEE_OTHER) &&
-                               (response.getStatus() != HttpStatus.SC_TEMPORARY_REDIRECT) &&
-                               !targetConfiguration.isPreserveHttpHeader(PassThroughConstants.LOCATION))) {
+                (response.getStatus() != HttpStatus.SC_MOVED_PERMANENTLY) &&
+                (response.getStatus() != HttpStatus.SC_CREATED) &&
+		(response.getStatus() != HttpStatus.SC_SEE_OTHER) &&
+		(response.getStatus() != HttpStatus.SC_TEMPORARY_REDIRECT) &&
+        !targetConfiguration.isPreserveHttpHeader(PassThroughConstants.LOCATION))) {
             URL url;
             String urlContext = null;
             try {
@@ -89,7 +90,7 @@ public class ClientWorker implements Runnable {
                 urlContext = url.getFile();
             } catch (MalformedURLException e) {
                 //Fix ESBJAVA-3461 - In the case when relative path is sent should be handled
-                if (log.isDebugEnabled()) {
+                if(log.isDebugEnabled()){
                     log.debug("Relative URL received for Location : " + oriURL, e);
                 }
                 urlContext = oriURL;
@@ -98,7 +99,7 @@ public class ClientWorker implements Runnable {
             headers.remove(PassThroughConstants.LOCATION);
             String prfix = (String) outMsgCtx.getProperty(PassThroughConstants.SERVICE_PREFIX);
             if (prfix != null) {
-                if (urlContext != null && urlContext.startsWith("/")) {
+                if(urlContext != null && urlContext.startsWith("/")){
                     //Remove the preceding '/' character
                     urlContext = urlContext.substring(1);
                 }
@@ -108,7 +109,7 @@ public class ClientWorker implements Runnable {
         }
         try {
             responseMsgCtx = outMsgCtx.getOperationContext().
-                    getMessageContext(WSDL2Constants.MESSAGE_LABEL_IN);
+                getMessageContext(WSDL2Constants.MESSAGE_LABEL_IN);
             // fix for RM to work because of a soapAction and wsaAction conflict
             if (responseMsgCtx != null) {
                 responseMsgCtx.setSoapAction("");
@@ -122,7 +123,7 @@ public class ClientWorker implements Runnable {
             if (outMsgCtx.getOperationContext().isComplete()) {
                 if (log.isDebugEnabled()) {
                     log.debug("Error getting IN message context from the operation context. " +
-                              "Possibly an RM terminate sequence message");
+                            "Possibly an RM terminate sequence message");
                 }
                 return;
 
@@ -130,12 +131,12 @@ public class ClientWorker implements Runnable {
             responseMsgCtx = new MessageContext();
             responseMsgCtx.setOperationContext(outMsgCtx.getOperationContext());
         }
-        responseMsgCtx.setProperty("PRE_LOCATION_HEADER", oriURL);
+        responseMsgCtx.setProperty("PRE_LOCATION_HEADER",oriURL);
         // copy the important properties from the original message context
         responseMsgCtx.setProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONNECTION,
-                                   outMsgCtx.getProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONNECTION));
+                outMsgCtx.getProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONNECTION));
         responseMsgCtx.setProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONFIGURATION,
-                                   outMsgCtx.getProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONFIGURATION));
+                outMsgCtx.getProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONFIGURATION));
 
         responseMsgCtx.setServerSide(true);
         responseMsgCtx.setDoingREST(outMsgCtx.isDoingREST());
@@ -163,7 +164,7 @@ public class ClientWorker implements Runnable {
 
         if (response.getStatus() == 202) {
             responseMsgCtx.setProperty(AddressingConstants.
-                                               DISABLE_ADDRESSING_FOR_OUT_MESSAGES, Boolean.TRUE);
+                    DISABLE_ADDRESSING_FOR_OUT_MESSAGES, Boolean.TRUE);
             responseMsgCtx.setProperty(PassThroughConstants.MESSAGE_BUILDER_INVOKED, Boolean.FALSE);
             responseMsgCtx.setProperty(NhttpConstants.SC_ACCEPTED, Boolean.TRUE);
         }
@@ -179,7 +180,7 @@ public class ClientWorker implements Runnable {
         responseMsgCtx.setProperty(SynapseDebugInfoHolder.SYNAPSE_WIRE_LOG_HOLDER_PROPERTY, response.getConnection()
                 .getContext().getAttribute(SynapseDebugInfoHolder.SYNAPSE_WIRE_LOG_HOLDER_PROPERTY));
         responseMsgCtx.setProperty(PassThroughConstants.PASS_THROUGH_TARGET_CONNECTION,
-                                   response.getConnection());
+                response.getConnection());
     }
 
     public void run() {
@@ -194,14 +195,14 @@ public class ClientWorker implements Runnable {
         }
         if (responseMsgCtx.getProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONNECTION) != null) {
             ((NHttpServerConnection) responseMsgCtx.getProperty(PassThroughConstants.PASS_THROUGH_SOURCE_CONNECTION)).
-                    getContext().setAttribute(PassThroughConstants.CLIENT_WORKER_START_TIME, System.currentTimeMillis());
+                       getContext().setAttribute(PassThroughConstants.CLIENT_WORKER_START_TIME, System.currentTimeMillis());
         }
         try {
             if (expectEntityBody) {
-                String cType = response.getHeader(HTTP.CONTENT_TYPE);
-                if (cType == null) {
-                    cType = response.getHeader(HTTP.CONTENT_TYPE.toLowerCase());
-                }
+            	  String cType = response.getHeader(HTTP.CONTENT_TYPE);
+                  if(cType == null){
+                  	cType =  response.getHeader(HTTP.CONTENT_TYPE.toLowerCase());
+                  }
                 String contentType;
                 if (cType != null) {
                     // This is the most common case - Most of the time servers send the Content-Type
@@ -222,9 +223,8 @@ public class ClientWorker implements Runnable {
                             Constants.Configuration.CHARACTER_SET_ENCODING,
                             contentType.indexOf("charset") > 0 ?
                             charSetEnc : MessageContext.DEFAULT_CHAR_SET_ENCODING);
-                    responseMsgCtx.removeProperty(PassThroughConstants.NO_ENTITY_BODY);
                 }
-
+                
                 responseMsgCtx.setServerSide(false);
                 SOAPFactory fac = OMAbstractFactory.getSOAP11Factory();
                 SOAPEnvelope envelope = fac.getDefaultEnvelope();
@@ -235,6 +235,7 @@ public class ClientWorker implements Runnable {
                 }
 
                 responseMsgCtx.setServerSide(true);
+	         responseMsgCtx.removeProperty(PassThroughConstants.NO_ENTITY_BODY);
             } else {
                 // there is no response entity-body
                 responseMsgCtx.setProperty(PassThroughConstants.NO_ENTITY_BODY, Boolean.TRUE);
@@ -248,7 +249,7 @@ public class ClientWorker implements Runnable {
             responseMsgCtx.setProperty(PassThroughConstants.HTTP_SC_DESC, response.getStatusLine());
             if (statusCode >= 400) {
                 responseMsgCtx.setProperty(PassThroughConstants.FAULT_MESSAGE,
-                                           PassThroughConstants.TRUE);
+                        PassThroughConstants.TRUE);
             } /*else if (statusCode == 202 && responseMsgCtx.getOperationContext().isComplete()) {
                 // Handle out-only invocation scenario
                 responseMsgCtx.setProperty(PassThroughConstants.MESSAGE_BUILDER_INVOKED, Boolean.TRUE);
@@ -263,15 +264,15 @@ public class ClientWorker implements Runnable {
             }
 
         } catch (AxisFault af) {
-            log.error("Fault creating response SOAP envelope", af);
+            log.error("Fault creating response SOAP envelope", af);            
         }
     }
 
     private String inferContentType() {
         //Check whether server sent Content-Type in different case
-        Map<String, String> headers = response.getHeaders();
-        for (String header : headers.keySet()) {
-            if (HTTP.CONTENT_TYPE.equalsIgnoreCase(header)) {
+        Map<String,String> headers = response.getHeaders();
+        for(String header : headers.keySet()){
+            if(HTTP.CONTENT_TYPE.equalsIgnoreCase(header)){
                 return headers.get(header);
             }
         }
@@ -298,11 +299,10 @@ public class ClientWorker implements Runnable {
 
         // When the response from backend does not have the body(Content-Length is 0 )
         // and Content-Type is not set; ESB should not do any modification to the response and pass-through as it is.
-        if ((headers.get(HTTP.CONTENT_LEN) == null && headers.get(HTTP.TRANSFER_ENCODING) == null)
-            || "0".equals(headers.get(HTTP.CONTENT_LEN))) {
-            responseMsgCtx.setProperty(PassThroughConstants.NO_ENTITY_BODY, Boolean.TRUE);
-            return null;
-        }
+        if (headers.get(HTTP.CONTENT_LEN) == null || "0".equals(headers.get(HTTP.CONTENT_LEN))) {
+             return null;
+         }
+
         // Unable to determine the content type - Return default value
         return PassThroughConstants.DEFAULT_CONTENT_TYPE;
     }
