@@ -224,21 +224,25 @@ public class FIXIncomingMessageHandler implements Application {
                 log.trace("Message: " + message.toString());
             }
         }
+         try {
+             // Before FIX server sends (35=A) admin login message get username/password values from proxy configuration
+             if (message.getHeader().getField(new StringField(FIXConstants.FIX_MESSAGE_TYPE)).getValue().equals(FIXConstants.LOGON)) {
 
-        // Before FIX server sends (35=A) admin login message get username/password values from proxy configuration
-        if (message.getHeader().getField(new StringField(FIXConstants.FIX_MESSAGE_TYPE)).getValue().equals(FIXConstants.LOGON)) {
+                 Parameter userName = service.getParameter(FIXConstants.FIX_USERNAME);
+                 Parameter passWord = service.getParameter(FIXConstants.FIX_PASSWORD);
 
-            Parameter userName = service.getParameter(FIXConstants.FIX_USERNAME);
-            Parameter passWord = service.getParameter(FIXConstants.FIX_PASSWORD);
-
-            if (userName != null && passWord != null) {
-                message.setString(FIXConstants.USERNAME_TAG, userName.getValue().toString());
-                message.setString(FIXConstants.PASSWORD_TAG, passWord.getValue().toString());
-            }
-            if (log.isDebugEnabled()) {
-                log.debug("UserName:" + userName + " or password:" + passWord + "from proxy configuration..");
-            }
-        }
+                 if (userName != null && passWord != null) {
+                     message.setString(FIXConstants.USERNAME_TAG, userName.getValue().toString());
+                     message.setString(FIXConstants.PASSWORD_TAG, passWord.getValue().toString());
+                 }
+                 if (log.isDebugEnabled()) {
+                     log.debug("UserName:" + userName + " or password:" + passWord + "from proxy configuration..");
+                 }
+             }
+         }
+         catch (FieldNotFound e) {
+             log.error("One or more required fields are not found in the response message", e);
+         }
 
         if (eventHandler != null) {
             eventHandler.toAdmin(this, message, sessionID);
