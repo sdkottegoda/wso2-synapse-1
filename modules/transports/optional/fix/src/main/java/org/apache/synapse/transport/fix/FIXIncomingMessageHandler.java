@@ -32,6 +32,7 @@ import org.apache.axis2.transport.base.AbstractTransportSender;
 import org.apache.axis2.transport.base.BaseConstants;
 import org.apache.axis2.transport.base.BaseUtils;
 import org.apache.axis2.transport.base.threads.WorkerPool;
+import org.apache.synapse.transport.fix.FIXConstants;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import quickfix.*;
@@ -146,7 +147,7 @@ public class FIXIncomingMessageHandler implements Application {
     public void onCreate(SessionID sessionID) {
         log.info("New FIX session created: " + sessionID.toString());
         if (eventHandler != null) {
-            eventHandler.onCreate(sessionID);
+            eventHandler.onCreate(this,sessionID);
         }
     }
 
@@ -166,7 +167,7 @@ public class FIXIncomingMessageHandler implements Application {
         semaphore.release();
 
         if (eventHandler != null) {
-            eventHandler.onLogon(sessionID);
+            eventHandler.onLogon(this,sessionID);
         }
     }
 
@@ -185,7 +186,7 @@ public class FIXIncomingMessageHandler implements Application {
         log.info("FIX session logged out: " + sessionID.toString());
 
         if (eventHandler != null) {
-            eventHandler.onLogout(sessionID);
+            eventHandler.onLogout(this,sessionID);
         }
     }
 
@@ -216,8 +217,28 @@ public class FIXIncomingMessageHandler implements Application {
             }
         }
 
+        try{
+            // Before FIX server sends (35=A) admin login message get username/password values from proxy configuration
+            if(message.getHeader().getField(new StringField(FIXConstants.FIX_MESSAGE_TYPE)).getValue().equals(FIXConstants.LOGON)){
+
+              Parameter userName =  service.getParameter(FIXConstants.FIX_USERNAME);
+              Parameter passWord = service.getParameter(FIXConstants.FIX_PASSWORD);
+
+                if(userName!= null && passWord != null) {
+                    message.setString(FIXConstants.USERNAME_TAG, userName.getValue().toString());
+                    message.setString(FIXConstants.PASSWORD_TAG, passWord.getValue().toString());
+                }
+                    if(log.isDebugEnabled()){
+                        log.debug("UserName:" + userName + " or password:" + passWord + "from proxy configuration..");
+                    }
+            }
+        }
+        catch (FieldNotFound fieldNotFound) {
+            log.trace("Message: " + message.toString());
+        }
+
         if (eventHandler != null) {
-            eventHandler.toAdmin(message, sessionID);
+            eventHandler.toAdmin(this,message, sessionID);
         }
     }
 
@@ -230,6 +251,7 @@ public class FIXIncomingMessageHandler implements Application {
      * @throws FieldNotFound
      * @throws IncorrectDataFormat
      * @throws IncorrectTagValue
+     * @throws UnsupportedMessageType
      * @throws RejectLogon causes a logon reject
      */
     public void fromAdmin(Message message, SessionID sessionID) throws FieldNotFound,
@@ -248,7 +270,7 @@ public class FIXIncomingMessageHandler implements Application {
         }
 
         if (eventHandler != null) {
-            eventHandler.fromAdmin(message, sessionID);
+            eventHandler.fromAdmin(this, message, sessionID);
         }
     }
 
@@ -279,7 +301,7 @@ public class FIXIncomingMessageHandler implements Application {
         }
 
         if (eventHandler != null) {
-            eventHandler.toApp(message, sessionID);
+            eventHandler.toApp(this,message, sessionID);
         }
     }
 
