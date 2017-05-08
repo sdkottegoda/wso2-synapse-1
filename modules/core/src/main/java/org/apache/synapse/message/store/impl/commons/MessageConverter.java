@@ -35,6 +35,7 @@ import org.apache.axis2.context.ServiceContext;
 import org.apache.axis2.context.ServiceGroupContext;
 import org.apache.axis2.description.AxisOperation;
 import org.apache.axis2.description.AxisService;
+import org.apache.axis2.description.InOutAxisOperation;
 import org.apache.axis2.engine.AxisConfiguration;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.logging.Log;
@@ -126,6 +127,8 @@ public final class MessageConverter {
                 axis2Ctx.setOperationContext(operationContext);
                 axis2Ctx.setAxisService(axisService);
                 axis2Ctx.setAxisOperation(axisOperation);
+            } else if (axis2Ctx.getOperationContext() == null) {
+                axis2Ctx.setOperationContext(new OperationContext(new InOutAxisOperation(), new ServiceContext()));
             }
             if (axis2Msg.getReplyToAddress() != null) {
                 axis2Ctx.setReplyTo(new EndpointReference(axis2Msg.getReplyToAddress().trim()));
