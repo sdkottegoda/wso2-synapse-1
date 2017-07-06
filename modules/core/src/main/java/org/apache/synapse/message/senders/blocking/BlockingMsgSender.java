@@ -17,6 +17,7 @@
 */
 package org.apache.synapse.message.senders.blocking;
 
+import org.apache.axiom.om.OMAbstractFactory;
 import org.apache.axis2.AxisFault;
 import org.apache.axis2.Constants;
 import org.apache.axis2.addressing.EndpointReference;
@@ -296,10 +297,18 @@ public class BlockingMsgSender {
 
         org.apache.axis2.context.MessageContext returnMsgCtx =
                 new org.apache.axis2.context.MessageContext();
+        // If the received response contains a body it is set to the message context. Otherwise an empty SOAP
+        // envelope is created and set to the message context.
         if (resultMsgCtx.getEnvelope() != null) {
             returnMsgCtx.setEnvelope(MessageHelper.cloneSOAPEnvelope(resultMsgCtx.getEnvelope()));
             if (JsonUtil.hasAJsonPayload(resultMsgCtx)) {
                JsonUtil.cloneJsonPayload(resultMsgCtx, returnMsgCtx);
+            }
+        } else {
+            if (axisOutMsgCtx.isSOAP11()) {
+                returnMsgCtx.setEnvelope(OMAbstractFactory.getSOAP11Factory().getDefaultEnvelope());
+            } else {
+                returnMsgCtx.setEnvelope(OMAbstractFactory.getSOAP12Factory().getDefaultEnvelope());
             }
         }
         returnMsgCtx.setProperty(SynapseConstants.HTTP_SENDER_STATUSCODE,
