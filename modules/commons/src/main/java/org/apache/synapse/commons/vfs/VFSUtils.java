@@ -147,7 +147,8 @@ public class VFSUtils {
         }
         strLockValue += STR_SPLITER + (new Date()).getTime();
         byte[] lockValue = strLockValue.getBytes();
-        
+        FileObject lockObject = null;
+
         try {
             // check whether there is an existing lock for this item, if so it is assumed
             // to be processed by an another listener (downloading) or a sender (uploading)
@@ -157,7 +158,7 @@ public class VFSUtils {
             if (pos != -1) {
                 fullPath = fullPath.substring(0, pos);
             }            
-            FileObject lockObject = fsManager.resolveFile(fullPath + ".lock", fso);
+            lockObject = fsManager.resolveFile(fullPath + ".lock", fso);
             if (lockObject.exists()) {
                 log.debug("There seems to be an external lock, aborting the processing of the file "
                         + maskURLPassword(fo.getName().getURI())
@@ -206,6 +207,14 @@ public class VFSUtils {
         } catch (FileSystemException fse) {
             log.error("Cannot get the lock for the file : " + maskURLPassword(fo.getName().getURI())
                     + " before processing", fse);
+            //Fix ESBJAVA-4847. Need to close the FS, if not may cause OOM in long run.
+            if (lockObject != null) {
+                try {
+                    fsManager.closeFileSystem(lockObject.getParent().getFileSystem());
+                } catch (FileSystemException e) {
+                    log.warn("Unable to close the lockObject parent file system");
+                }
+            }
         }
         return false;
     }
