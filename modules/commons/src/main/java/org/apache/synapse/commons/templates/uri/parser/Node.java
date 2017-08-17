@@ -48,7 +48,7 @@ public abstract class Node {
         int matchLength = match(uriFragment, variables);
         if (matchLength < 0) {
             return -1;
-        } else if (matchLength <= uriFragment.length()) {
+        } else if (matchLength < uriFragment.length()) {
             if (next != null) {
                 uriFragment = uriFragment.substring(matchLength);
                 return matchLength + next.matchAll(uriFragment, variables);
@@ -69,6 +69,10 @@ public abstract class Node {
             if(next.getToken().equalsIgnoreCase("/*"))
             {
                 return matchLength;
+            }
+            if (next.getToken().startsWith("{")) {
+                uriFragment = uriFragment.substring(matchLength);
+                return matchLength + next.matchAll(uriFragment, variables);
             }
             // We have matched all the characters in the URI
             // But there are some nodes left to be matched against
