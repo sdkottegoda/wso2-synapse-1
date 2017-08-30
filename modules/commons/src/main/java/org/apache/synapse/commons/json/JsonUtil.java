@@ -182,6 +182,7 @@ public final class JsonUtil {
             .autoPrimitive(jsonOutAutoPrimitive)
             .namespaceDeclarations(jsonOutEnableNsDeclarations)
             .namespaceSeparator(jsonOutNamespaceSepChar)
+            .customRegex(jsonoutcustomRegex)
             .build();
     /// End of JSON/XML INPUT OUTPUT Formatting Configuration.
 
