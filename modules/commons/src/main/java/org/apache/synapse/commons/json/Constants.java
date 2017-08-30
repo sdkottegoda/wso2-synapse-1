@@ -104,4 +104,10 @@ final class Constants {
     public static final String SYNAPSE_COMMONS_JSON_OUTPUT_EMPTY_XML_ELEM_TO_EMPTY_STR =
             "synapse.commons.json.output.emptyXmlElemToEmptyStr";
 
+    public static final String SYNAPSE_COMMONS_JSON_JSON_OUTPUT_DISABLE_AUTO_PRIMITIVE_CUSTOM_REPLACE_REGEX =
+            "synapse.commons.json.json.output.disableAutoPrimitive.customReplaceRegex";
+
+    public static final String SYNAPSE_COMMONS_JSON_JSON_OUTPUT_DISABLE_AUTO_PRIMITIVE_CUSTOM_REPLACE_SEQUENCE =
+            "synapse.commons.json.json.output.disableAutoPrimitive.customReplaceSequence";
+
 }
