@@ -32,10 +32,11 @@ import org.apache.synapse.commons.staxon.core.base.AbstractXMLOutputFactory;
 import org.apache.synapse.commons.staxon.core.event.SimpleXMLEventWriter;
 import org.apache.synapse.commons.staxon.core.json.stream.JsonStreamFactory;
 import org.apache.synapse.commons.staxon.core.json.stream.JsonStreamTarget;
+import org.apache.synapse.commons.staxon.core.json.stream.util.RemoveRootTarget;
+import org.apache.synapse.commons.staxon.core.json.stream.util.CustomRegexMatchReplaceIgnoreAutoPrimitiveTarget;
+import org.apache.synapse.commons.staxon.core.json.stream.util.CustomRegexIgnoreAutoPrimitiveTarget;
 import org.apache.synapse.commons.staxon.core.json.stream.util.AutoArrayTarget;
 import org.apache.synapse.commons.staxon.core.json.stream.util.AutoPrimitiveTarget;
-import org.apache.synapse.commons.staxon.core.json.stream.util.CustomRegexIgnoreAutoPrimitiveTarget;
-import org.apache.synapse.commons.staxon.core.json.stream.util.RemoveRootTarget;
 
 /**
  * XML output factory for streaming to JSON.
@@ -108,6 +109,10 @@ public class JsonXMLOutputFactory extends AbstractXMLOutputFactory {
      */
     public static final String PROP_CUSTOM_REGEX = "JsonXMLOutputFactory.customRegex";
 
+    public static final String PROP_CUSTOM_REPLACE_REGEX = "JsonXMLOutputFactory.customReplaceRegex";
+
+    public static final String PROP_CUSTOM_REPLACE_SEQUENCE = "JsonXMLOutputFactory.customReplaceSequence";
+
 
     private JsonStreamFactory streamFactory;
     private boolean multiplePI;
@@ -118,6 +123,8 @@ public class JsonXMLOutputFactory extends AbstractXMLOutputFactory {
     private char namespaceSeparator;
     private boolean namespaceDeclarations;
     private String customRegex;
+    private String customReplaceRegex;
+    private String customReplaceSequence;
 
     public JsonXMLOutputFactory() throws FactoryConfigurationError {
         this(JsonXMLConfig.DEFAULT);
@@ -141,6 +148,8 @@ public class JsonXMLOutputFactory extends AbstractXMLOutputFactory {
         this.namespaceDeclarations = config.isNamespaceDeclarations();
         this.streamFactory = streamFactory;
         this.customRegex= config.getCustomRegex();
+        this.customReplaceRegex = config.getCustomReplaceRegex();
+        this.customReplaceSequence = config.getCustomReplaceSequence();
 
 		/*
          * initialize standard properties
@@ -158,6 +167,8 @@ public class JsonXMLOutputFactory extends AbstractXMLOutputFactory {
         if (autoPrimitive) {
             if (customRegex != null) {
                 target = new CustomRegexIgnoreAutoPrimitiveTarget(target, false, customRegex);
+            } else if (customReplaceRegex != null) {
+                target = new CustomRegexMatchReplaceIgnoreAutoPrimitiveTarget(target, false, customReplaceRegex, customReplaceSequence);
             } else {
                 target = new AutoPrimitiveTarget(target, false);
             }
@@ -202,7 +213,7 @@ public class JsonXMLOutputFactory extends AbstractXMLOutputFactory {
     @Override
     public boolean isPropertySupported(String name) {
         return super.isPropertySupported(name)
-                || Arrays.asList(PROP_AUTO_ARRAY, PROP_MULTIPLE_PI, PROP_VIRTUAL_ROOT, PROP_NAMESPACE_SEPARATOR, PROP_NAMESPACE_DECLARATIONS, PROP_PRETTY_PRINT).contains(name);
+                || Arrays.asList(PROP_AUTO_ARRAY, PROP_MULTIPLE_PI, PROP_VIRTUAL_ROOT, PROP_NAMESPACE_SEPARATOR, PROP_NAMESPACE_DECLARATIONS, PROP_PRETTY_PRINT, PROP_CUSTOM_REPLACE_REGEX, PROP_CUSTOM_REPLACE_SEQUENCE).contains(name);
     }
 
     @Override
@@ -210,24 +221,29 @@ public class JsonXMLOutputFactory extends AbstractXMLOutputFactory {
         if (super.isPropertySupported(name)) {
             return super.getProperty(name);
         } else { // proprietary properties
-            if (PROP_AUTO_ARRAY.equals(name)) {
-                return Boolean.valueOf(autoArray);
-            } else if (PROP_AUTO_PRIMITIVE.equals(name)) {
-                return Boolean.valueOf(autoPrimitive);
-            } else if (PROP_MULTIPLE_PI.equals(name)) {
-                return Boolean.valueOf(multiplePI);
-            } else if (PROP_VIRTUAL_ROOT.equals(name)) {
-                return virtualRoot;
-            } else if (PROP_PRETTY_PRINT.equals(name)) {
-                return Boolean.valueOf(prettyPrint);
-            } else if (PROP_NAMESPACE_SEPARATOR.equals(name)) {
-                return namespaceSeparator;
-            } else if (PROP_NAMESPACE_DECLARATIONS.equals(name)) {
-                return Boolean.valueOf(namespaceDeclarations);
-            }else if (PROP_CUSTOM_REGEX.equals(name)) {
-                return customRegex;
-            }else {
-                throw new IllegalArgumentException("Unsupported property: " + name);
+            switch (name) {
+                case PROP_AUTO_ARRAY:
+                    return Boolean.valueOf(autoArray);
+                case PROP_AUTO_PRIMITIVE:
+                    return Boolean.valueOf(autoPrimitive);
+                case PROP_MULTIPLE_PI:
+                    return Boolean.valueOf(multiplePI);
+                case PROP_VIRTUAL_ROOT:
+                    return virtualRoot;
+                case PROP_PRETTY_PRINT:
+                    return Boolean.valueOf(prettyPrint);
+                case PROP_NAMESPACE_SEPARATOR:
+                    return namespaceSeparator;
+                case PROP_NAMESPACE_DECLARATIONS:
+                    return Boolean.valueOf(namespaceDeclarations);
+                case PROP_CUSTOM_REGEX:
+                    return customRegex;
+                case PROP_CUSTOM_REPLACE_REGEX:
+                    return customReplaceRegex;
+                case PROP_CUSTOM_REPLACE_SEQUENCE:
+                    return customReplaceSequence;
+                default:
+                    throw new IllegalArgumentException("Unsupported property: " + name);
             }
         }
     }
@@ -251,9 +267,13 @@ public class JsonXMLOutputFactory extends AbstractXMLOutputFactory {
                 namespaceSeparator = (Character) value;
             } else if (PROP_NAMESPACE_DECLARATIONS.equals(name)) {
                 namespaceDeclarations = ((Boolean) value).booleanValue();
-            } else if (PROP_CUSTOM_REGEX.equals(name) && value instanceof String){
-                customRegex=(String)value;
-            }else {
+            } else if (PROP_CUSTOM_REGEX.equals(name) && value instanceof String) {
+                customRegex = (String) value;
+            } else if (PROP_CUSTOM_REPLACE_REGEX.equals(name) && value instanceof String) {
+                customReplaceRegex = (String) value;
+            } else if (PROP_CUSTOM_REPLACE_SEQUENCE.equals(name) && value instanceof String) {
+                customReplaceSequence = (String) value;
+            } else {
                 throw new IllegalArgumentException("Unsupported property: " + name);
             }
         }

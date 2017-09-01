@@ -92,6 +92,10 @@ public final class JsonUtil {
 
     private static final String jsonoutcustomRegex;
 
+    private static final String jsonoutCustomReplaceRegex;
+
+    private static final String jsonoutCustomReplaceSequence;
+
     private static final boolean jsonoutAutoArray;
 
     private static final boolean jsonoutMultiplePI;
@@ -107,6 +111,8 @@ public final class JsonUtil {
             jsonOutAutoPrimitive = true;
             jsonOutNamespaceSepChar = '_';
             jsonoutcustomRegex=null;
+            jsonoutCustomReplaceRegex = null;
+            jsonoutCustomReplaceSequence = "";
             jsonoutAutoArray = true;
             jsonoutMultiplePI = false;
             xmloutAutoArray = true;
@@ -131,6 +137,12 @@ public final class JsonUtil {
 
             jsonoutcustomRegex = properties.getProperty
                     (Constants.SYNAPSE_COMMONS_JSON_OUTPUT_DISABLE_AUTO_PRIMITIVE_REGEX, null);
+
+            jsonoutCustomReplaceRegex = properties
+                    .getProperty(Constants.SYNAPSE_COMMONS_JSON_JSON_OUTPUT_DISABLE_AUTO_PRIMITIVE_CUSTOM_REPLACE_REGEX, null);
+
+            jsonoutCustomReplaceSequence = properties
+                    .getProperty(Constants.SYNAPSE_COMMONS_JSON_JSON_OUTPUT_DISABLE_AUTO_PRIMITIVE_CUSTOM_REPLACE_SEQUENCE, "");
 
             jsonoutAutoArray = Boolean.parseBoolean(properties.getProperty
                     (Constants.SYNAPSE_COMMONS_JSON_OUTPUT_JSON_OUT_AUTO_ARRAY, "true"));
@@ -158,7 +170,7 @@ public final class JsonUtil {
             .autoArray(true)
             .autoPrimitive(true)
             .namespaceDeclarations(false)
-            .namespaceSeparator( '\u0D89')
+            .namespaceSeparator('\u0D89')
             .customRegex(jsonoutcustomRegex)
             .build();
 
@@ -182,6 +194,8 @@ public final class JsonUtil {
             .autoPrimitive(jsonOutAutoPrimitive)
             .namespaceDeclarations(jsonOutEnableNsDeclarations)
             .namespaceSeparator(jsonOutNamespaceSepChar)
+            .customReplaceRegex(jsonoutCustomReplaceRegex)
+            .customReplaceSequence(jsonoutCustomReplaceSequence)
             .customRegex(jsonoutcustomRegex)
             .build();
     /// End of JSON/XML INPUT OUTPUT Formatting Configuration.
