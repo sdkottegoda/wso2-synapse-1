@@ -28,6 +28,7 @@ import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
 import org.apache.http.protocol.HTTP;
+import org.apache.synapse.transport.passthru.PassThroughConstants;
 import org.apache.synapse.transport.passthru.jmx.PassThroughTransportMetricsCollector;
 import org.apache.synapse.transport.passthru.util.BufferFactory;
 
@@ -171,6 +172,16 @@ public abstract class BaseConfiguration {
 
     public PassThroughTransportMetricsCollector getMetrics() {
         return metrics;
+    }
+
+    /**
+     *  Provides socket timeout in milliseconds.
+     *
+     * @return http.socket.timeout in milliseconds
+     */
+    public static long getSocketTimeOut() {
+        return PassThroughConfiguration.getInstance().getIntProperty(HttpConnectionParams.SO_TIMEOUT,
+                PassThroughConstants.DEFAULT_HTTP_SOCKET_TIMEOUT);
     }
 
 }
