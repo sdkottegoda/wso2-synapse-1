@@ -33,6 +33,7 @@ import org.apache.synapse.util.xpath.SynapseXPath;
 import org.jaxen.JaxenException;
 import sun.misc.Service;
 
+import java.lang.reflect.Method;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -140,11 +141,37 @@ public class InboundEndpoint implements AspectConfigurable, ManagedLifecycle {
         return inboundProcessorParams;
     }
 
-    public void destroy() {
+    //Below method introduced to fix the product-ei#1206.
+    /**
+     * Remove inbound endpoints.
+     *
+     * @param removeTask Whether to remove scheduled task or not.
+     */
+    public void destroy(boolean removeTask) {
         log.info("Destroying Inbound Endpoint: " + getName());
         if (inboundRequestProcessor != null) {
-            inboundRequestProcessor.destroy();
+            try {
+                // Some implementation of the InboundRequestProcessor has overloaded destroy(boolean) methods.
+                // In such a situation, we need to invoke that.
+                Class c = Class.forName(inboundRequestProcessor.getClass().getName());
+                try {
+                    Method method = c.getMethod("destroy", Boolean.TYPE);
+                    method.invoke(inboundRequestProcessor, removeTask);
+                } catch (NoSuchMethodException ex) {
+                    // If destroy(boolean) doesn't exist then we invoke default interface method.
+                    inboundRequestProcessor.destroy();
+                }
+            } catch (Exception e) {
+                log.error("Unable to destroy Inbound endpoint", e);
+            }
         }
+    }
+
+    /**
+     * Remove inbound endpoints.
+     */
+    public void destroy() {
+        destroy(true);
     }
 
     public String getName() {
