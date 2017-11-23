@@ -80,6 +80,8 @@ public final class JsonUtil {
     // TODO: Property to remove root element from XML output
     // TODO: Axis2 property/synapse static property add XML Namespace to the root element
 
+    private static boolean isJsonToXmlPiEnabled = false;
+
     private static boolean preserverNamespacesForJson = false;
 
     private static final boolean processNCNames;
@@ -92,10 +94,6 @@ public final class JsonUtil {
 
     private static final String jsonoutcustomRegex;
 
-    private static final String jsonoutCustomReplaceRegex;
-
-    private static final String jsonoutCustomReplaceSequence;
-
     private static final boolean jsonoutAutoArray;
 
     private static final boolean jsonoutMultiplePI;
@@ -103,6 +101,12 @@ public final class JsonUtil {
     private static final boolean xmloutAutoArray;
 
     private static final boolean xmloutMultiplePI;
+
+    private static final String jsonoutCustomReplaceRegex;
+
+    private static final String jsonoutCustomReplaceSequence;
+
+    private static final boolean xmlNilReadWriteEnabled;
 
     static {
         Properties properties = MiscellaneousUtil.loadProperties("synapse.properties");
@@ -117,6 +121,7 @@ public final class JsonUtil {
             jsonoutMultiplePI = false;
             xmloutAutoArray = true;
             xmloutMultiplePI = false;
+            xmlNilReadWriteEnabled = false;
         } else {
             // Preserve the namespace declarations() in the JSON output in the XML -> JSON transformation.
             String process = properties.getProperty(Constants.SYNAPSE_COMMONS_JSON_PRESERVE_NAMESPACE, "false").trim();
@@ -159,6 +164,12 @@ public final class JsonUtil {
             process = properties.getProperty
                     (Constants.SYNAPSE_COMMONS_JSON_OUTPUT_EMPTY_XML_ELEM_TO_EMPTY_STR, "true").trim();
 
+            isJsonToXmlPiEnabled = Boolean.parseBoolean(
+                    properties.getProperty(Constants.SYNAPSE_JSON_TO_XML_PROCESS_INSTRUCTION_ENABLE, "false").trim());
+
+            xmlNilReadWriteEnabled = Boolean
+                    .parseBoolean(properties.getProperty("synapse.commons.enableXmlNilReadWrite", "false"));
+
         }
     }
 
@@ -172,6 +183,7 @@ public final class JsonUtil {
             .namespaceDeclarations(false)
             .namespaceSeparator('\u0D89')
             .customRegex(jsonoutcustomRegex)
+            .readWriteXmlNil(xmlNilReadWriteEnabled)
             .build();
 
     /**
@@ -183,6 +195,7 @@ public final class JsonUtil {
             .autoPrimitive(true)
             .namespaceDeclarations(false)
             .namespaceSeparator('\u0D89')
+            .readWriteXmlNil(xmlNilReadWriteEnabled)
             .build();
 
     /**
@@ -197,6 +210,7 @@ public final class JsonUtil {
             .customReplaceRegex(jsonoutCustomReplaceRegex)
             .customReplaceSequence(jsonoutCustomReplaceSequence)
             .customRegex(jsonoutcustomRegex)
+            .readWriteXmlNil(xmlNilReadWriteEnabled)
             .build();
     /// End of JSON/XML INPUT OUTPUT Formatting Configuration.
 
@@ -1174,5 +1188,14 @@ public final class JsonUtil {
             isRequired = false;
         }
         return isRequired;
+    }
+
+    /**
+     * Returns the configured value of the parameter (synapse.json.to.xml.process.instruction.enabled).
+     *
+     * @return true to inform staxon library to add PIs to JSON -> XML conversion
+     */
+    public static boolean isPiEnabled() {
+        return isJsonToXmlPiEnabled;
     }
 }

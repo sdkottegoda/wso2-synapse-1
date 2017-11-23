@@ -110,4 +110,10 @@ final class Constants {
     public static final String SYNAPSE_COMMONS_JSON_JSON_OUTPUT_DISABLE_AUTO_PRIMITIVE_CUSTOM_REPLACE_SEQUENCE =
             "synapse.commons.json.json.output.disableAutoPrimitive.customReplaceSequence";
 
+    /**
+     * Property to inform Staxon library to include xml multiple processing instruction in JSON -> XML transformation
+     */
+    public static final String SYNAPSE_JSON_TO_XML_PROCESS_INSTRUCTION_ENABLE = "synapse.json.to.xml.processing.instruction.enabled";
+
+
 }
