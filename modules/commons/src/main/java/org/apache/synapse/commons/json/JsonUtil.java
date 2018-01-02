@@ -67,6 +67,7 @@ public final class JsonUtil {
 
     private static final QName JSON_ARRAY = new QName("jsonArray");
 
+    private static final QName JSON_VALUE = new QName("jsonValue");
     /**
      * If this property is set to <tt>true</tt> the input stream of the JSON payload will be reset
      * after writing to the output stream within the #writeAsJson method.
@@ -371,6 +372,11 @@ public final class JsonUtil {
         }
         transformElement(element, true);
         try {
+            if (JSON_VALUE.getLocalPart().equals(element.getLocalName())) {
+                outputStream.write(element.getText().getBytes());
+                outputStream.flush();
+                return;
+            }
             org.apache.commons.io.output.ByteArrayOutputStream xmlStream =
                     new org.apache.commons.io.output.ByteArrayOutputStream();
             element.serialize(xmlStream);
@@ -530,6 +536,7 @@ public final class JsonUtil {
         }
         boolean isObject = false;
         boolean isArray = false;
+        boolean isValue = false;
         if (inputStream != null) {
             InputStream json = toReadOnlyStream(inputStream);
             messageContext.setProperty(ORG_APACHE_SYNAPSE_COMMONS_JSON_JSON_INPUT_STREAM, json);
@@ -537,29 +544,50 @@ public final class JsonUtil {
             boolean isEmptyPayload = true;
             boolean valid = false;
             try {
-                // check for empty/all-whitespace streams
-                int c = json.read();
-                while (c != -1 && c != '{' && c != '[') {
-                    if (c != 32) {
+                /*
+                 Checks for all empty or all whitespace streams and if found  sets isEmptyPayload to false. The while
+                 loop exits if one of the valid literals is found. If no valid literal is found the it will loop to
+                 the end of the stream and the next if statement after the loop makes sure that valid will remain false.
+                 */
+                int character = json.read();
+                while (character != -1 && character != '{' && character != '[' && character != '"' && character != 't'
+                        && character != 'n' && character != 'f' && character != '-' && character != '0'
+                        && character != '1' && character != '2' && character != '3' && character != '4'
+                        && character != '5' && character != '6' && character != '7' && character != '8'
+                        && character != '9') {
+                    if (character != 32) {
                         isEmptyPayload = false;
                     }
-                    c = json.read();
+                    character = json.read();
                 }
-                if (c != -1) {
+                if (character != -1) {
                     valid = true;
                 }
-                if (c == '{') {
+                  /*A valid JSON can be an object, array or a value (http://json.org/). The following conditions check
+                 the beginning char to see if the json stream could fall into one of this category.*/
+                if (character == '{') {
                     isObject = true;
                     isArray = false;
-                } else if (c == '[') {
+                    isValue = false;
+                } else if (character == '[') {
                     isArray = true;
                     isObject = false;
+                    isValue = false;
+                } else if (character == '"' || character == 't' || character == 'n' || character == 'f'
+                        || character == '-' || character == '0' || character == '1' || character == '2'
+                        || character == '3' || character == '4' || character == '5' || character == '6'
+                        || character == '7' || character == '8' || character == '9') {
+                    //a value can be a quoted string (") true (t),
+                    // false (f), null (n) or a number (- or any digit and cannot start with a +)
+                    isArray = false;
+                    isObject = false;
+                    isValue = true;
                 }
                 json.reset();
             } catch (IOException e) {
                 logger.error(
-                        "#getNewJsonPayload. Could not determine availability of the JSON input stream. MessageID: " +
-                        messageContext.getMessageID() + ". Error>>> " + e.getLocalizedMessage());
+                        "#getNewJsonPayload. Could not determine availability of the JSON input stream. MessageID: "
+                                + messageContext.getMessageID() + ". Error>>> " + e.getLocalizedMessage());
                 return null;
             }
             if (!valid) {
@@ -581,10 +609,9 @@ public final class JsonUtil {
                      * https://wso2.org/jira/browse/ESBJAVA-4270
                      */
                     if (isValidPayloadRequired(messageContext)) {
-                        logger.error(
-                                "#getNewJsonPayload. Could not save JSON payload. Invalid input stream found. MessageID: " +
-                                messageContext.getMessageID());
-                        throw new AxisFault("Payload is not a JSON string.");
+                        throw new AxisFault(
+                                "#getNewJsonPayload. Could not save JSON payload. Invalid input stream found.Payload "
+                                        + "is not a JSON string");
                     } else {
                         return null;
                     }
@@ -594,6 +621,30 @@ public final class JsonUtil {
             if (isObject) {
                 jsonElement = JSON_OBJECT;
                 messageContext.setProperty(ORG_APACHE_SYNAPSE_COMMONS_JSON_IS_JSON_OBJECT, true);
+            }
+            if (isValue) {
+                String jsonString = "";
+                try {
+                    jsonString = IOUtils.toString(json, "UTF-8");
+
+                    messageContext.setProperty(ORG_APACHE_SYNAPSE_COMMONS_JSON_IS_JSON_OBJECT, false);
+                    if (jsonString.startsWith("\"") && jsonString.endsWith("\"") || jsonString.equals("true")
+                            || jsonString.equals("false") || jsonString.equals("null")
+                            || jsonString.matches("-?\\d+(\\.\\d+)?")) {
+                        jsonElement = JSON_VALUE;
+                    } else {
+                        throw new AxisFault(
+                                "#getNewJsonPayload. Could not save JSON payload. Invalid input stream found. Payload"
+                                        + " is not a JSON string.");
+                    }
+                    OMElement element = OMAbstractFactory.getOMFactory().createOMElement(jsonElement, null);
+                    element.addChild(OMAbstractFactory.getOMFactory().createOMText(jsonString));
+                    return element;
+                } catch (IOException e) {
+                    throw new AxisFault(
+                            "#Can not parse stream. MessageID: " + messageContext.getMessageID() + ". Error>>> "
+                                    + e.getLocalizedMessage(), e);
+                }
             }
             if (isArray) {
                 jsonElement = JSON_ARRAY;
@@ -676,7 +727,7 @@ public final class JsonUtil {
      * @see #getNewJsonPayload(org.apache.axis2.context.MessageContext, java.io.InputStream, boolean, boolean)
      */
     public static OMElement getNewJsonPayload(MessageContext messageContext, String jsonString, boolean removeChildren,
-                                              boolean addAsNewFirstChild) throws AxisFault {
+            boolean addAsNewFirstChild) throws AxisFault {
         if (jsonString == null || jsonString.isEmpty()) {
             jsonString = "{}";
         }
@@ -989,7 +1040,8 @@ public final class JsonUtil {
     public static boolean isAJsonPayloadElement(OMElement element) {
         return element != null
                 && (JSON_OBJECT.getLocalPart().equals(element.getLocalName())
-                || JSON_ARRAY.getLocalPart().equals(element.getLocalName()));
+                || JSON_ARRAY.getLocalPart().equals(element.getLocalName())
+                || JSON_VALUE.getLocalPart().equals(element.getLocalName()));
     }
 
     /**
