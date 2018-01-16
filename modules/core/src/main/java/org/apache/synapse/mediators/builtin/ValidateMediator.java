@@ -144,6 +144,10 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
      * to hold the Path Expression to be evaluated against the message to find the element to be validated.
      */
     private SynapsePath sourcePath;
+    /**
+     * Whether schema need to cache or not. Default cache every schema.
+     */
+    private boolean cacheSchema = true;
 
     @SuppressWarnings({"ThrowableResultOfMethodCallIgnored"})
     public boolean mediate(MessageContext synCtx) {
@@ -165,23 +169,12 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
         if (JsonUtil.hasAJsonPayload(a2mc)) {
             ProcessingReport report;
 
+            // This JsonSchema used if user decide not to cache the schema. In such a situation jsonSchema will not used.
+            JsonSchema uncachedJsonSchema = null;
+            JsonNode uncachedJsonSchemaNode = null;
             // flag to check if we need to initialize/re-initialize the schema
-            boolean reCreate = false;
             // if any of the schemas are not loaded, or have expired, load or re-load them
-            for (Value schemaKey : schemaKeys) {
-                // Derive actual key from message context
-                String propKey = schemaKey.evaluateValue(synCtx);
-                if (!propKey.equals(cachedPropKey)) {
-                    reCreate = true;       // request re-initialization of Validator
-                }
-
-                Entry dp = synCtx.getConfiguration().getEntryDefinition(propKey);
-                if (dp != null && dp.isDynamic()) {
-                    if (!dp.isCached() || dp.isExpired()) {
-                        reCreate = true;       // request re-initialization of Validator
-                    }
-                }
-            }
+            boolean reCreate = !cacheSchema || isReCreate(synCtx);
 
             // do not re-initialize schema unless required
             synchronized (validatorLock) {
@@ -200,13 +193,21 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
 
                     try {
                         if (jsonSchemaObj instanceof String) {
-                            jsonSchemaNode = JsonLoader.fromString((String) jsonSchemaObj);
+                            if (cacheSchema) {
+                                jsonSchemaNode = JsonLoader.fromString((String) jsonSchemaObj);
+                            } else {
+                                uncachedJsonSchemaNode = JsonLoader.fromString((String) jsonSchemaObj);
+                            }
                         } else if (jsonSchemaObj instanceof OMTextImpl) {
                             //if Schema provides from registry
                             InputStreamReader reader = null;
                             try {
                                 reader = new InputStreamReader(((OMTextImpl) jsonSchemaObj).getInputStream());
-                                jsonSchemaNode = JsonLoader.fromReader(reader);
+                                if (cacheSchema) {
+                                    jsonSchemaNode = JsonLoader.fromReader(reader);
+                                } else {
+                                    uncachedJsonSchemaNode = JsonLoader.fromReader(reader);
+                                }
                             } finally {
                                 if (reader != null) {
                                     try {
@@ -216,20 +217,22 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
                                     }
                                 }
                             }
-
                         } else {
                             handleException("Can not find valid JSON Schema content", synCtx);
                         }
-                        jsonSchema = jsonSchemaFactory.getJsonSchema(jsonSchemaNode);
+                        if (cacheSchema) {
+                            jsonSchema = jsonSchemaFactory.getJsonSchema(jsonSchemaNode);
+                        } else {
+                            uncachedJsonSchema = jsonSchemaFactory.getJsonSchema(uncachedJsonSchemaNode);
+                        }
                     } catch (ProcessingException | IOException e) {
                         handleException("Error while validating the JSON Schema", e, synCtx);
                     }
-
                 }
             }
 
             try {
-                if (jsonSchema == null) {
+                if (jsonSchema == null || uncachedJsonSchema == null) {
                     handleException("Failed to create JSON Schema Validator", synCtx);
                 }
                 String jsonPayload = null;
@@ -247,7 +250,11 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
                     //making empty json string
                     jsonPayload = "{}";
                 }
-                report = jsonSchema.validate(JsonLoader.fromString(jsonPayload));
+                if (cacheSchema) {
+                    report = jsonSchema.validate(JsonLoader.fromString(jsonPayload));
+                } else {
+                    report = uncachedJsonSchema.validate(JsonLoader.fromString(jsonPayload));
+                }
                 if (report.isSuccess()) {
                     return true;
                 } else {
@@ -294,25 +301,14 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
             Source validateSrc = getValidationSource(synCtx, synLog);
 
             // flag to check if we need to initialize/re-initialize the schema
-            boolean reCreate = false;
             // if any of the schemas are not loaded, or have expired, load or re-load them
-            for (Value schemaKey : schemaKeys) {
-                // Derive actual key from message context
-                String propKey = schemaKey.evaluateValue(synCtx);
-                if (!propKey.equals(cachedPropKey)) {
-                    reCreate = true;       // request re-initialization of Validator
-                }
-
-                Entry dp = synCtx.getConfiguration().getEntryDefinition(propKey);
-                if (dp != null && dp.isDynamic()) {
-                    if (!dp.isCached() || dp.isExpired()) {
-                        reCreate = true;       // request re-initialization of Validator
-                    }
-                }
-            }
+            boolean reCreate = !cacheSchema || isReCreate(synCtx);
 
             // This is the reference to the DefaultHandler instance
             ValidateMediatorErrorHandler errorHandler = new ValidateMediatorErrorHandler();
+
+            // This instance used to handle schema not cached scenarios.
+            Schema uncachedSchema = null;
 
             // do not re-initialize schema unless required
             synchronized (validatorLock) {
@@ -336,7 +332,11 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
                             factory.setResourceResolver(
                                     new SchemaResourceResolver(synCtx.getConfiguration(), resourceMap));
                         }
-                        cachedSchema = factory.newSchema(sources);
+                        if (cacheSchema) {
+                            cachedSchema = factory.newSchema(sources);
+                        } else {
+                            uncachedSchema = factory.newSchema(sources);
+                        }
                     } catch (SAXException e) {
                         handleException("Error creating a new schema objects for " +
                                         "schemas : " + schemaKeys.toString(), e, synCtx);
@@ -358,7 +358,12 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
 
             // no need to synchronize, schema instances are thread-safe
             try {
-                Validator validator = cachedSchema.newValidator();
+                Validator validator;
+                if (cacheSchema) {
+                    validator = cachedSchema.newValidator();
+                } else {
+                    validator = uncachedSchema.newValidator();
+                }
                 validator.setErrorHandler(errorHandler);
 
                 // perform actual validation
@@ -410,6 +415,24 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
         }
 
         return true;
+    }
+
+    private boolean isReCreate(MessageContext synCtx) {
+        boolean reCreate = false;
+        for (Value schemaKey : schemaKeys) {
+            // Derive actual key from message context
+            String propKey = schemaKey.evaluateValue(synCtx);
+            if (!propKey.equals(cachedPropKey)) {
+                reCreate = true;       // request re-initialization of Validator
+            }
+            Entry dp = synCtx.getConfiguration().getEntryDefinition(propKey);
+            if (dp != null && dp.isDynamic()) {
+                if (!dp.isCached() || dp.isExpired()) {
+                    reCreate = true;       // request re-initialization of Validator
+                }
+            }
+        }
+        return reCreate;
     }
 
     public boolean mediate(MessageContext synCtx,
@@ -645,6 +668,23 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
      */
     public ResourceMap getResourceMap() {
         return resourceMap;
+    }
+
+    /**
+     * Set whether schema need to cache or not.
+     *
+     * @param cacheSchema cache the schema or not.
+     */
+    public void setCacheSchema(boolean cacheSchema) {
+        this.cacheSchema = cacheSchema;
+    }
+
+    /**
+     * Check whether to cahce the schemas.
+     * @return whether to cache or not.
+     */
+    public boolean isCacheSchema() {
+        return cacheSchema;
     }
 
     @Override
