@@ -208,4 +208,9 @@ public class PassThroughConstants {
 
     //Constant to specify the default socket timeout
     public static final int DEFAULT_HTTP_SOCKET_TIMEOUT = 60000;
+
+    /**
+     * System property to configure verification timeout (iterative verification) in seconds for port.
+     */
+    public static final String SYSTEMPROP_PORT_CLOSE_VERIFY_TIMEOUT = "synapse.transport.portCloseVerifyTimeout";
 }
