@@ -232,7 +232,7 @@ public class ValidateMediator extends AbstractListMediator implements FlowContin
             }
 
             try {
-                if (jsonSchema == null || uncachedJsonSchema == null) {
+                if (jsonSchema == null && uncachedJsonSchema == null) {
                     handleException("Failed to create JSON Schema Validator", synCtx);
                 }
                 String jsonPayload = null;
