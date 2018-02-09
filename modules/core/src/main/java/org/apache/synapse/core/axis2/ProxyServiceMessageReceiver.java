@@ -253,6 +253,7 @@ public class ProxyServiceMessageReceiver extends SynapseMessageReceiver {
                 debugManager.advertiseMediationFlowTerminatePoint(synCtx);
                 debugManager.releaseMediationFlowLock();
             }
+            doPostInjectUpdates(synCtx);
 
         }
     }
