@@ -289,7 +289,6 @@ public class Axis2Sender {
                     sb.append(strKey + ":" + mHeader.get(strKey).toString() + ",");
                 }
             }
-            sb.append(msgContext.getEnvelope().toString());
             sb.append(" Unexpected error sending message back");
         } catch (Exception e) {
             sb.append(" Unexpected error sending message back");

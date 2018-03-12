@@ -105,6 +105,15 @@ public abstract class AbstractListMediator extends AbstractMediator
             }
         } catch (SynapseException synEx) {
 
+            String errorMsg = "Exception occurs while mediating the message. " + synEx.getMessage();
+            log.error(errorMsg, synEx);
+            if (synCtx.getServiceLog() != null) {
+                synCtx.getServiceLog().error(errorMsg, synEx);
+            }
+            if (shouldTrace(synCtx)) {
+                trace.error(errorMsg, synEx);
+            }
+
             // Now create matcher object.
             Matcher msgBuildFailureExMatcher = msgBuildFailureExpattern.matcher(ExceptionUtils.getStackTrace(synEx));
             if (msgBuildFailureExMatcher.find()) {
