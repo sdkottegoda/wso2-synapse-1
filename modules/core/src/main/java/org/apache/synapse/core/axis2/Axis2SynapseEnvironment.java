@@ -871,7 +871,7 @@ public class Axis2SynapseEnvironment implements SynapseEnvironment {
             callMediatorCount--;
             if (callMediatorCount == 0) {
                 continuation = false;
-                log.debug("Continuation call is set to false");
+                log.info("Continuation call is set to false");
             }
         }
     }
