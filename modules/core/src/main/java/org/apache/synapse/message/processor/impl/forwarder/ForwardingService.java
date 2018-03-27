@@ -465,7 +465,9 @@ public class ForwardingService implements Task, ManagedLifecycle {
 						                         getNonRetryStatusCodes());
 
 						if (messageConsumer != null && messageConsumer.isAlive()) {
-							outCtx = sender.send(ep, messageContext);
+							messageContext.setProperty(SynapseConstants.BLOCKING_MSG_SENDER, sender);
+							ep.send(messageContext);
+							outCtx = messageContext;
 						}
 
                         if (isNonHTTP) {
@@ -501,8 +503,9 @@ public class ForwardingService implements Task, ManagedLifecycle {
                          */
                         if (isNonHTTP) {
                             isSuccessful = false;
-						} else if (outCtx != null && "true".equals(outCtx.getProperty(
-								ForwardingProcessorConstants.BLOCKING_SENDER_ERROR))) {
+						} else if ((outCtx.getProperty(SynapseConstants.OUT_ONLY) == null || "false"
+		                        .equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) && "true"
+		                        .equals(outCtx.getProperty(ForwardingProcessorConstants.BLOCKING_SENDER_ERROR))) {
 							isSuccessful = false;
 						} else {
                             if (e instanceof SynapseException) {
@@ -537,7 +540,8 @@ public class ForwardingService implements Task, ManagedLifecycle {
 						}
 					}
 
-                    if (outCtx != null) {
+					if (outCtx.getProperty(SynapseConstants.OUT_ONLY) == null
+							|| "false".equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) {
                         if (isSuccessful) {
                             sendThroughReplySeq(outCtx);
                             messageConsumer.ack();
