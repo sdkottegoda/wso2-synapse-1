@@ -162,15 +162,15 @@ public class Axis2FlexibleMEPClient {
             String strCharSetEncoding = "";
             if (endpoint.getCharSetEncoding() != null) {
                 strCharSetEncoding = ";" + endpoint.getCharSetEncoding();
-            }
-
+            }            
+            
             if (SynapseConstants.FORMAT_POX.equals(endpoint.getFormat())) {
                 axisOutMsgCtx.setDoingREST(true);
                 axisOutMsgCtx.setProperty(org.apache.axis2.Constants.Configuration.MESSAGE_TYPE,
                         org.apache.axis2.transport.http.HTTPConstants.MEDIA_TYPE_APPLICATION_XML);
                 axisOutMsgCtx.setProperty(Constants.Configuration.CONTENT_TYPE,
                         org.apache.axis2.transport.http.HTTPConstants.MEDIA_TYPE_APPLICATION_XML);
-
+                
                 Object o = axisOutMsgCtx.getProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS);
     			Map _headers = (Map) o;
     			if (_headers != null) {
