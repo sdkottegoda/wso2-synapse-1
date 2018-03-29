@@ -371,9 +371,11 @@ public class ContinuationStackManager {
 
     /**
      * Peek from Continuation Stack.
+     *
+     * @param synCtx       message context.
      * @return ContinuationState.
      */
-    public static ContinuationState peakContinuationStateStack(MessageContext synCtx){
+    public static ContinuationState peakContinuationStateStack(MessageContext synCtx) {
         Stack<ContinuationState> continuationStack = synCtx.getContinuationStateStack();
         synchronized (continuationStack) {
             if (!continuationStack.isEmpty()) {
@@ -392,62 +394,62 @@ public class ContinuationStackManager {
      */
     public static void pushFaultHandler(MessageContext synCtx, SeqContinuationState seqContState) {
         switch (seqContState.getSeqType()) {
-        case NAMED: {
-            pushRootFaultHandlerForSequence(synCtx);
-            break;
-        }
-        case PROXY_INSEQ: {
-            String proxyName = (String) synCtx.getProperty(SynapseConstants.PROXY_SERVICE);
-            ProxyService proxyService = synCtx.getConfiguration().getProxyService(proxyName);
-            if (proxyService != null) {
-                proxyService.registerFaultHandler(synCtx);
-            } else {
-                handleException("Proxy Service :" + proxyName + " not found");
+            case NAMED: {
+                pushRootFaultHandlerForSequence(synCtx);
+                break;
             }
-            break;
-        }
-        case API_INSEQ: {
-            String apiName = (String) synCtx.getProperty(RESTConstants.SYNAPSE_REST_API);
-            String resourceName = (String) synCtx.getProperty(RESTConstants.SYNAPSE_RESOURCE);
-            API api = synCtx.getEnvironment().getSynapseConfiguration().getAPI(apiName);
-            if (api != null) {
-                Resource resource = api.getResource(resourceName);
-                if (resource != null) {
-                    resource.registerFaultHandler(synCtx);
+            case PROXY_INSEQ: {
+                String proxyName = (String) synCtx.getProperty(SynapseConstants.PROXY_SERVICE);
+                ProxyService proxyService = synCtx.getConfiguration().getProxyService(proxyName);
+                if (proxyService != null) {
+                    proxyService.registerFaultHandler(synCtx);
                 } else {
-                    handleException("Resource : " + resourceName + " not found");
+                    handleException("Proxy Service :" + proxyName + " not found");
                 }
-            } else {
-                handleException("REST API : " + apiName + " not found");
+                break;
             }
-            break;
-        }
-        case PROXY_OUTSEQ: {
-            String proxyName = (String) synCtx.getProperty(SynapseConstants.PROXY_SERVICE);
-            ProxyService proxyService = synCtx.getConfiguration().getProxyService(proxyName);
-            if (proxyService != null) {
-                proxyService.registerFaultHandler(synCtx);
-            } else {
-                handleException("Proxy Service :" + proxyName + " not found");
-            }
-            break;
-        }
-        case API_OUTSEQ: {
-            String apiName = (String) synCtx.getProperty(RESTConstants.SYNAPSE_REST_API);
-            String resourceName = (String) synCtx.getProperty(RESTConstants.SYNAPSE_RESOURCE);
-            API api = synCtx.getEnvironment().getSynapseConfiguration().getAPI(apiName);
-            if (api != null) {
-                Resource resource = api.getResource(resourceName);
-                if (resource != null) {
-                    resource.registerFaultHandler(synCtx);
+            case API_INSEQ: {
+                String apiName = (String) synCtx.getProperty(RESTConstants.SYNAPSE_REST_API);
+                String resourceName = (String) synCtx.getProperty(RESTConstants.SYNAPSE_RESOURCE);
+                API api = synCtx.getEnvironment().getSynapseConfiguration().getAPI(apiName);
+                if (api != null) {
+                    Resource resource = api.getResource(resourceName);
+                    if (resource != null) {
+                        resource.registerFaultHandler(synCtx);
+                    } else {
+                        handleException("Resource : " + resourceName + " not found");
+                    }
                 } else {
-                    handleException("Resource : " + resourceName + " not found");
+                    handleException("REST API : " + apiName + " not found");
                 }
-            } else {
-                handleException("REST API : " + apiName + " not found");
+                break;
             }
-            break;
-        }
+            case PROXY_OUTSEQ: {
+                String proxyName = (String) synCtx.getProperty(SynapseConstants.PROXY_SERVICE);
+                ProxyService proxyService = synCtx.getConfiguration().getProxyService(proxyName);
+                if (proxyService != null) {
+                    proxyService.registerFaultHandler(synCtx);
+                } else {
+                    handleException("Proxy Service :" + proxyName + " not found");
+                }
+                break;
+            }
+            case API_OUTSEQ: {
+                String apiName = (String) synCtx.getProperty(RESTConstants.SYNAPSE_REST_API);
+                String resourceName = (String) synCtx.getProperty(RESTConstants.SYNAPSE_RESOURCE);
+                API api = synCtx.getEnvironment().getSynapseConfiguration().getAPI(apiName);
+                if (api != null) {
+                    Resource resource = api.getResource(resourceName);
+                    if (resource != null) {
+                        resource.registerFaultHandler(synCtx);
+                    } else {
+                        handleException("Resource : " + resourceName + " not found");
+                    }
+                } else {
+                    handleException("REST API : " + apiName + " not found");
+                }
+                break;
+            }
         }
     }
 
