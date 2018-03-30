@@ -543,31 +543,28 @@ public class ForwardingService implements Task, ManagedLifecycle {
 						}
 					}
 
-
-                        if (isSuccessful) {
-	                        if (outCtx.getProperty(SynapseConstants.OUT_ONLY) == null
-			                        || "false".equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) {
-		                        sendThroughReplySeq(outCtx);
-	                        }
-                            messageConsumer.ack();
-                            attemptCount = 0;
-                            isSuccessful = true;
-                            if (log.isDebugEnabled()) {
-                                log.debug("Successfully sent the message to endpoint [" +
-                                          ep.getName() + "]" + " with message processor [" +
-                                          messageProcessor.getName() + "]");
-                            }
-                        } else {
-                            // This means some error has occurred so
-                            // must try to send down the fault sequence.
-                            log.error("BlockingMessageSender of message processor [" +
-                                      this.messageProcessor.getName() +
-                                      "] failed to send message to the endpoint");
-	                        if (outCtx.getProperty(SynapseConstants.OUT_ONLY) == null
-			                        || "false".equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) {
-		                        sendThroughFaultSeq(outCtx);
-	                        }
-                        }
+					if (isSuccessful) {
+						if (outCtx.getProperty(SynapseConstants.OUT_ONLY) == null || "false"
+								.equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) {
+							sendThroughReplySeq(outCtx);
+						}
+						messageConsumer.ack();
+						attemptCount = 0;
+						isSuccessful = true;
+						if (log.isDebugEnabled()) {
+							log.debug("Successfully sent the message to endpoint [" + ep.getName() + "]"
+									+ " with message processor [" + messageProcessor.getName() + "]");
+						}
+					} else {
+						// This means some error has occurred so
+						// must try to send down the fault sequence.
+						log.error("BlockingMessageSender of message processor [" + this.messageProcessor.getName()
+								+ "] failed to send message to the endpoint");
+						if (outCtx.getProperty(SynapseConstants.OUT_ONLY) == null || "false"
+								.equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) {
+							sendThroughFaultSeq(outCtx);
+						}
+					}
 					
 					if (!isSuccessful) {
 						// Then we have to retry sending the message to the
