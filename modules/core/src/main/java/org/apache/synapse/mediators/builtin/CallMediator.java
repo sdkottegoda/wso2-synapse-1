@@ -135,8 +135,8 @@ public class CallMediator extends AbstractMediator implements ManagedLifecycle {
             endpoint.send(synInCtx);
         }
 
-        if ("false".equals(synInCtx.getProperty(SynapseConstants.BLOCKING_SENDER_ERROR))) {
-            if (synInCtx.getProperty(SynapseConstants.OUT_ONLY) == null || "false"
+        if (SynapseConstants.FALSE.equals(synInCtx.getProperty(SynapseConstants.BLOCKING_SENDER_ERROR))) {
+            if (synInCtx.getProperty(SynapseConstants.OUT_ONLY) == null || SynapseConstants.FALSE
                     .equals(synInCtx.getProperty(SynapseConstants.OUT_ONLY))) {
                 if (synInCtx.getEnvelope() != null) {
                     if (synLog.isTraceTraceEnabled()) {
@@ -152,7 +152,7 @@ public class CallMediator extends AbstractMediator implements ManagedLifecycle {
                 }
             }
         } else {
-            log.info("Error while performing the call operation in blocking mode");
+            log.error("Error while performing the call operation in blocking mode");
             return false;
         }
 

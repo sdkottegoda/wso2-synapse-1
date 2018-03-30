@@ -467,6 +467,10 @@ public class ForwardingService implements Task, ManagedLifecycle {
 						if (messageConsumer != null && messageConsumer.isAlive()) {
 							messageContext.setProperty(SynapseConstants.BLOCKING_MSG_SENDER, sender);
 							ep.send(messageContext);
+							if (equals(messageContext.getProperty(SynapseConstants.BLOCKING_SENDER_ERROR))) {
+								throw new SynapseException("Error sending Message to the endpoint",
+										(Exception) messageContext.getProperty(SynapseConstants.ERROR_EXCEPTION));
+							}
 							outCtx = messageContext;
 						}
 
@@ -503,8 +507,7 @@ public class ForwardingService implements Task, ManagedLifecycle {
                          */
                         if (isNonHTTP) {
                             isSuccessful = false;
-						} else if ((outCtx.getProperty(SynapseConstants.OUT_ONLY) == null || "false"
-		                        .equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) && "true"
+                        } else if ("true"
 		                        .equals(outCtx.getProperty(ForwardingProcessorConstants.BLOCKING_SENDER_ERROR))) {
 							isSuccessful = false;
 						} else {
@@ -540,10 +543,12 @@ public class ForwardingService implements Task, ManagedLifecycle {
 						}
 					}
 
-					if (outCtx.getProperty(SynapseConstants.OUT_ONLY) == null
-							|| "false".equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) {
+
                         if (isSuccessful) {
-                            sendThroughReplySeq(outCtx);
+	                        if (outCtx.getProperty(SynapseConstants.OUT_ONLY) == null
+			                        || "false".equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) {
+		                        sendThroughReplySeq(outCtx);
+	                        }
                             messageConsumer.ack();
                             attemptCount = 0;
                             isSuccessful = true;
@@ -558,29 +563,11 @@ public class ForwardingService implements Task, ManagedLifecycle {
                             log.error("BlockingMessageSender of message processor [" +
                                       this.messageProcessor.getName() +
                                       "] failed to send message to the endpoint");
-                            sendThroughFaultSeq(outCtx);
+	                        if (outCtx.getProperty(SynapseConstants.OUT_ONLY) == null
+			                        || "false".equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) {
+		                        sendThroughFaultSeq(outCtx);
+	                        }
                         }
-                    } else {
-                        if (isSuccessful) {
-                            // This Means we have invoked an out only operation
-                            // remove the message and reset the count
-                            messageConsumer.ack();
-                            attemptCount = 0;
-                            isSuccessful = true;
-
-                            if (log.isDebugEnabled()) {
-                                log.debug("Successfully sent the message to endpoint [" +
-                                          ep.getName() + "]" + " with message processor [" +
-                                          messageProcessor.getName() + "]");
-                            }
-
-                        } else {
-                            // This means some error has occurred.
-                            log.error("BlockingMessageSender of message processor [" +
-                                      this.messageProcessor.getName() +
-                                      "] failed to send message to the endpoint");
-                        }
-                    }
 					
 					if (!isSuccessful) {
 						// Then we have to retry sending the message to the

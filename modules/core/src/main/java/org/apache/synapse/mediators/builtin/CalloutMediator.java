@@ -215,48 +215,50 @@ public class CalloutMediator extends AbstractMediator implements ManagedLifecycl
                     if (synLog.isTraceTraceEnabled()) {
                         synLog.traceTrace("Response payload received : " + synapseOutMsgCtx.getEnvelope());
                     }
-                    if (synapseOutMsgCtx.getEnvelope() != null) {
-                        org.apache.axis2.context.MessageContext resultAxisMsgCtx = ((Axis2MessageContext) synapseOutMsgCtx)
-                                .getAxis2MessageContext();
-                        org.apache.axis2.context.MessageContext inAxisMsgCtx = ((Axis2MessageContext) synCtx)
-                                .getAxis2MessageContext();
-                        if (JsonUtil.hasAJsonPayload(resultAxisMsgCtx)) {
-                            JsonUtil.cloneJsonPayload(resultAxisMsgCtx, inAxisMsgCtx);
+            if (synapseOutMsgCtx.getEnvelope() != null) {
+                org.apache.axis2.context.MessageContext resultAxisMsgCtx =
+                        ((Axis2MessageContext) synapseOutMsgCtx).getAxis2MessageContext();
+                org.apache.axis2.context.MessageContext inAxisMsgCtx =
+                                        ((Axis2MessageContext) synCtx).getAxis2MessageContext();
+                if (JsonUtil.hasAJsonPayload(resultAxisMsgCtx)) {
+                    JsonUtil.cloneJsonPayload(resultAxisMsgCtx, inAxisMsgCtx);
+                } else {
+                    if (targetXPath != null) {
+                        Object o = targetXPath.evaluate(synCtx);
+                        OMElement result = synapseOutMsgCtx.getEnvelope().getBody().getFirstElement();
+                        if (o != null && o instanceof OMElement) {
+                            OMNode tgtNode = (OMElement) o;
+                            tgtNode.insertSiblingAfter(result);
+                            tgtNode.detach();
+                        } else if (o != null && o instanceof List && !((List) o).isEmpty()) {
+                            // Always fetches *only* the first
+                            OMNode tgtNode = (OMElement) ((List) o).get(0);
+                            tgtNode.insertSiblingAfter(result);
+                            tgtNode.detach();
                         } else {
-                            if (targetXPath != null) {
-                                Object o = targetXPath.evaluate(synCtx);
-                                OMElement result = synapseOutMsgCtx.getEnvelope().getBody().getFirstElement();
-                                if (o != null && o instanceof OMElement) {
-                                    OMNode tgtNode = (OMElement) o;
-                                    tgtNode.insertSiblingAfter(result);
-                                    tgtNode.detach();
-                                } else if (o != null && o instanceof List && !((List) o).isEmpty()) {
-                                    // Always fetches *only* the first
-                                    OMNode tgtNode = (OMElement) ((List) o).get(0);
-                                    tgtNode.insertSiblingAfter(result);
-                                    tgtNode.detach();
-                                } else {
-                                    handleException("Evaluation of target XPath expression : " + targetXPath.toString()
-                                            + " did not yeild an OMNode", synCtx);
-                                }
-                            } else if (targetKey != null) {
-                                OMElement result = synapseOutMsgCtx.getEnvelope().getBody().getFirstElement();
-                                synCtx.setProperty(targetKey, result);
-                            } else {
-                                synCtx.setEnvelope(synapseOutMsgCtx.getEnvelope());
-                            }
+                            handleException("Evaluation of target XPath expression : " +
+                                    targetXPath.toString() + " did not yeild an OMNode", synCtx);
                         }
-                        // Set HTTP Status code
-                        inAxisMsgCtx.setProperty(SynapseConstants.HTTP_SC,
-                                resultAxisMsgCtx.getProperty(SynapseConstants.HTTP_SC));
-                        if ("false".equals(synCtx.getProperty(SynapseConstants.BLOCKING_SENDER_PRESERVE_REQ_HEADERS))) {
-                            inAxisMsgCtx.setProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS,
-                                    resultAxisMsgCtx
-                                            .getProperty(org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS));
-                        }
+                    } else if (targetKey != null) {
+                        OMElement result = synapseOutMsgCtx.getEnvelope().getBody().getFirstElement();
+                        synCtx.setProperty(targetKey, result);
                     } else {
-                        synLog.traceOrDebug("Service returned a null response");
+                    	synCtx.setEnvelope(synapseOutMsgCtx.getEnvelope());
                     }
+                }
+                // Set HTTP Status code
+                inAxisMsgCtx.setProperty(SynapseConstants.HTTP_SC,
+                                         resultAxisMsgCtx.getProperty(SynapseConstants.HTTP_SC));
+                if ("false".equals(synCtx.getProperty(
+                        SynapseConstants.BLOCKING_SENDER_PRESERVE_REQ_HEADERS))) {
+                    inAxisMsgCtx.setProperty(
+                            org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS,
+                            resultAxisMsgCtx.getProperty(
+                                    org.apache.axis2.context.MessageContext.TRANSPORT_HEADERS));
+                }
+            } else {
+                synLog.traceOrDebug("Service returned a null response");
+            }
                 }
             } else {
                 log.info("Error while performing the callout operation");
