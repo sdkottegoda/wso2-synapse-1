@@ -434,7 +434,8 @@ public class PayloadFactoryMediator extends AbstractMediator {
      * @return
      */
     private boolean isJson(String value) {
-        return !(value == null || value.isEmpty()) && (value.trim().charAt(0) == '{' || value.trim().charAt(0) == '[');
+        return !(value == null || value.trim().isEmpty()) && (value.trim().charAt(0) == '{'
+                || value.trim().charAt(0) == '[');
     }
 
     /**
