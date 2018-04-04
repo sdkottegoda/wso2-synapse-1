@@ -467,11 +467,11 @@ public class ForwardingService implements Task, ManagedLifecycle {
 						if (messageConsumer != null && messageConsumer.isAlive()) {
 							messageContext.setProperty(SynapseConstants.BLOCKING_MSG_SENDER, sender);
 							ep.send(messageContext);
-							if (equals(messageContext.getProperty(SynapseConstants.BLOCKING_SENDER_ERROR))) {
+							outCtx = messageContext;
+							if ("true".equals(messageContext.getProperty(SynapseConstants.BLOCKING_SENDER_ERROR))) {
 								throw new SynapseException("Error sending Message to the endpoint",
 										(Exception) messageContext.getProperty(SynapseConstants.ERROR_EXCEPTION));
 							}
-							outCtx = messageContext;
 						}
 
                         if (isNonHTTP) {
