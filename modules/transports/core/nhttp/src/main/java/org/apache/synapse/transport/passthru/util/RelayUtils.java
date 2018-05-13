@@ -157,6 +157,64 @@ public class RelayUtils {
         return;
     }
 
+    /**
+     * Function to check whether the processing request (enclosed within MessageContext) is a DELETE request without
+     * entity body since we allow to have payload for DELETE requests, we treat same as POST. Hence this function can be
+     * used to deviate DELETE requests without payloads
+     * @param msgContext MessageContext
+     * @return whether the request is a DELETE without payload
+     */
+    public static boolean isDeleteRequestWithoutPayload (MessageContext msgContext) {
+        if (PassThroughConstants.HTTP_DELETE.equals(msgContext.getProperty(Constants.Configuration.HTTP_METHOD))) {
+
+            //If message builder not invoked (Passthrough may contain entity body) OR delete with payload
+            if (!Boolean.TRUE.equals(msgContext.getProperty(PassThroughConstants.MESSAGE_BUILDER_INVOKED)) ||
+                    !Boolean.TRUE.equals(msgContext.getProperty(PassThroughConstants.NO_ENTITY_BODY))) {
+                //HTTP DELETE request with payload
+                return false;
+            }
+            //Empty payload delete request
+            return true;
+        }
+        //Not a HTTP DELETE request
+        return false;
+    }
+
+    /**
+     * Function to check given inputstream is empty or not
+     * Used to check whether content of the payload input stream is empty or not
+     * @param inputStream target inputstream
+     * @return true if it is a empty stream
+     * @throws IOException
+     */
+    public static boolean isEmptyPayloadStream (InputStream inputStream) throws IOException {
+
+        boolean isEmptyPayload = true;
+
+        if (inputStream != null) {
+            // read ahead few characters to see if the stream is valid.
+            ReadOnlyBIS readOnlyStream = new ReadOnlyBIS(inputStream);
+
+            /**
+             * Checks for all empty or all whitespace streams and if found  sets isEmptyPayload to false. The while
+             * loop exits if found any character other than space or end of stream reached.
+             **/
+            int c = readOnlyStream.read();
+            while (c != -1) {
+                if (c != 32) {
+                    //if not a space, should be some character in entity body
+                    isEmptyPayload = false;
+                    break;
+                }
+                c = readOnlyStream.read();
+            }
+            readOnlyStream.reset();
+            inputStream.reset();
+        }
+
+        return isEmptyPayload;
+    }
+
     private static void processAddressing(MessageContext messageContext) throws AxisFault {
         if (noAddressingHandler) {
             return;
@@ -302,4 +360,49 @@ public class RelayUtils {
             }
         }
     }
+    /**
+     * An Un-closable, Read-Only, Reusable, BufferedInputStream
+     */
+    private static class ReadOnlyBIS extends BufferedInputStream {
+        private static final String LOG_STREAM = "org.apache.synapse.transport.passthru.util.ReadOnlyStream";
+        private static final Log logger = LogFactory.getLog(LOG_STREAM);
+
+        ReadOnlyBIS(InputStream inputStream) {
+            super(inputStream);
+            super.mark(Integer.MAX_VALUE);
+            if (logger.isDebugEnabled()) {
+                logger.debug("<init>");
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            super.reset();
+            //super.mark(Integer.MAX_VALUE);
+            if (logger.isDebugEnabled()) {
+                logger.debug("#close");
+            }
+        }
+
+        @Override
+        public void mark(int readlimit) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("#mark");
+            }
+        }
+
+        @Override
+        public boolean markSupported() {
+            return true; //but we don't mark.
+        }
+
+        @Override
+        public long skip(long n) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("#skip");
+            }
+            return 0;
+        }
+    }
+
 }
