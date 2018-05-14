@@ -364,7 +364,8 @@ public class PassThroughHttpSender extends AbstractHandler implements TransportS
                     }
                     //if HTTP MEHOD = GET we need to write down the HEADER information to the wire and need
                     //to ignore any entity enclosed methods available.
-                    if (("GET").equals(msgContext.getProperty(Constants.Configuration.HTTP_METHOD)) || ("DELETE").equals(msgContext.getProperty(Constants.Configuration.HTTP_METHOD))) {
+                    if (HTTPConstants.HTTP_METHOD_GET.equals(msgContext.getProperty(Constants.Configuration.HTTP_METHOD)) ||
+                            RelayUtils.isDeleteRequestWithoutPayload(msgContext)) {
                         pipe.setSerializationCompleteWithoutData(true);
                     } else if (messageSize == 0 &&
                                (msgContext.getProperty(PassThroughConstants.FORCE_POST_PUT_NOBODY) != null &&
@@ -374,13 +375,14 @@ public class PassThroughHttpSender extends AbstractHandler implements TransportS
                         pipe.setSerializationComplete(true);
                     }
 
-				}else {
-					//if HTTP MEHOD = GET we need to write down the HEADER information to the wire and need
-					//to ignore any entity enclosed methods available.
-                    if (("GET").equals(msgContext.getProperty(Constants.Configuration.HTTP_METHOD)) || ("DELETE").equals(msgContext.getProperty(Constants.Configuration.HTTP_METHOD))) {
-						pipe.setSerializationCompleteWithoutData(true);
-						return;
-					}
+                } else {
+                    //if HTTP MEHOD = GET we need to write down the HEADER information to the wire and need
+                    //to ignore any entity enclosed methods available.
+                    if (HTTPConstants.HTTP_METHOD_GET.equals(msgContext.getProperty(Constants.Configuration.HTTP_METHOD)) ||
+                            RelayUtils.isDeleteRequestWithoutPayload(msgContext)) {
+                        pipe.setSerializationCompleteWithoutData(true);
+                        return;
+                    }
 
 					if ((disableChunking == null || !"true".equals(disableChunking)) ||
 					    (forceHttp10 == null || !"true".equals(forceHttp10))) {
@@ -470,6 +472,17 @@ public class PassThroughHttpSender extends AbstractHandler implements TransportS
         }
 
         SourceRequest sourceRequest = SourceContext.getRequest(conn);
+
+        if (sourceRequest == null) { // We'll get here if the connection is already closed
+            //this is a special case we dropped source connection where message size exceeds the user defined threshold
+            if (conn.getContext().getAttribute(PassThroughConstants.SOURCE_CONNECTION_DROPPED) != null &&
+                    (Boolean) conn.getContext().getAttribute(PassThroughConstants.SOURCE_CONNECTION_DROPPED)) {
+                //already submitted response for this case, hence return
+                return;
+            }
+            log.warn("Trying to submit a response to an already closed connection : " + conn);
+            return;
+        }
 
         SourceResponse sourceResponse = SourceResponseFactory.create(msgContext,
                 sourceRequest, sourceConfiguration);
