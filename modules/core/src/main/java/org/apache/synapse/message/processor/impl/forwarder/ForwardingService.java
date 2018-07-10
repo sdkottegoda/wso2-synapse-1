@@ -551,6 +551,11 @@ public class ForwardingService implements Task, ManagedLifecycle {
 						}
 					}
 
+					isTerminated = messageProcessor.isDeactivated();
+					if (!isTerminated && (messageProcessor instanceof ScheduledMessageProcessor)) {
+						isTerminated = !((ScheduledMessageProcessor) messageProcessor).isActive();
+					}
+
 					if (isSuccessful) {
 						if (outCtx.getProperty(SynapseConstants.OUT_ONLY) == null || "false"
 								.equals(outCtx.getProperty(SynapseConstants.OUT_ONLY))) {
