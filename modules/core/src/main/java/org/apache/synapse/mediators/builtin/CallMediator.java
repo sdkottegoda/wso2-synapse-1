@@ -126,8 +126,10 @@ public class CallMediator extends AbstractMediator implements ManagedLifecycle {
             keySet.remove(SynapseConstants.RECEIVING_SEQUENCE);
             keySet.remove(EndpointDefinition.DYNAMIC_URL_VALUE);
             keySet.remove(SynapseConstants.LAST_ENDPOINT);
+            keySet.remove(SynapseConstants.BLOCKING_SENDER_ERROR);
         }
-        synInCtx.setProperty(SynapseConstants.LAST_SEQ_FAULT_HANDLER, getLastSequenceFaultHandler(synInCtx));
+        Object faultHandlerBeforeInvocation = getLastSequenceFaultHandler(synInCtx);
+        synInCtx.setProperty(SynapseConstants.LAST_SEQ_FAULT_HANDLER, faultHandlerBeforeInvocation);
 
         // fixing ESBJAVA-4976, if no endpoint is defined in call mediator, this is required to avoid NPEs in sender.
         if (endpoint == null) {
@@ -137,7 +139,12 @@ public class CallMediator extends AbstractMediator implements ManagedLifecycle {
             endpoint.send(synInCtx);
         }
 
-        if (SynapseConstants.FALSE.equals(synInCtx.getProperty(SynapseConstants.BLOCKING_SENDER_ERROR))) {
+        // check whether fault sequence is already invoked
+        if (faultHandlerBeforeInvocation != getLastSequenceFaultHandler(synInCtx)) {
+            return false;
+        }
+
+        if (!("true".equals(synInCtx.getProperty(SynapseConstants.BLOCKING_SENDER_ERROR)))) {
             if (synInCtx.getProperty(SynapseConstants.OUT_ONLY) == null || SynapseConstants.FALSE
                     .equals(synInCtx.getProperty(SynapseConstants.OUT_ONLY))) {
                 if (synInCtx.getEnvelope() != null) {
@@ -202,6 +209,7 @@ public class CallMediator extends AbstractMediator implements ManagedLifecycle {
             keySet.remove(EndpointDefinition.DYNAMIC_URL_VALUE);
             keySet.remove(SynapseConstants.LAST_ENDPOINT);
             keySet.remove(SynapseConstants.BLOCKING_MSG_SENDER);
+            keySet.remove(SynapseConstants.BLOCKING_SENDER_ERROR);
         }
 
         boolean outOnlyMessage = "true".equals(synInCtx.getProperty(SynapseConstants.OUT_ONLY));
