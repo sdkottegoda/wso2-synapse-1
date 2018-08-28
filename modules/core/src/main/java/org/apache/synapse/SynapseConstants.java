@@ -82,6 +82,14 @@ public final class SynapseConstants {
     public static final String HEADER_RELATES_TO = "RelatesTo";
     /** Refers to the MessageID header */
     public static final String HEADER_MESSAGE_ID = "MessageID";
+    /** Whether client request is a soap 11 request **/
+    public static final String IS_CLIENT_DOING_SOAP11 = "IsClientDoingSOAP11";
+    /** Whether client request is a REST request **/
+    public static final String IS_CLIENT_DOING_REST = "IsClientDoingREST";
+    /** Content-type of soap11 request **/
+    public final static String SOAP11_CONTENT_TYPE  = "text/xml";
+    /** Content-type of soap12 request **/
+    public final static String SOAP12_CONTENT_TYPE  = "application/soap+xml";
     /** Refers to the property name for which the get-property function would return
      * true, if the message is a fault
      */

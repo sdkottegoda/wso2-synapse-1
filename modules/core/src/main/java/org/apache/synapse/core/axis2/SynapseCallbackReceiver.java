@@ -340,15 +340,13 @@ public class SynapseCallbackReceiver extends CallbackReceiver {
             response.setTransportIn(axisOutMsgCtx.getTransportIn());
             response.setTransportOut(axisOutMsgCtx.getTransportOut());
 
-            // If request is REST assume that the response is REST too
-            response.setDoingREST(axisOutMsgCtx.isDoingREST());
             if (axisOutMsgCtx.isDoingMTOM() && (axisOutMsgCtx.getProperty(org.apache.axis2.Constants.Configuration
                                                                                      .ENABLE_MTOM) == null ||
                                                 Boolean.getBoolean((String) axisOutMsgCtx.
                                                            getProperty(org.apache.axis2
                                                                                   .Constants
                                                                                   .Configuration
-                                                                                  .ENABLE_MTOM)) == true)) {
+                                                                                  .ENABLE_MTOM)))) {
                 response.setDoingMTOM(true);
                 response.setProperty(
                            org.apache.axis2.Constants.Configuration.ENABLE_MTOM,
@@ -388,16 +386,6 @@ public class SynapseCallbackReceiver extends CallbackReceiver {
                  // response message
                 response.setProperty(org.apache.axis2.Constants.Configuration.MESSAGE_TYPE,
                     messageType);
-            }
-
-            // compare original received message (axisOutMsgCtx) soap version with the response
-            // if they are different change to original version 
-            if(axisOutMsgCtx.isSOAP11() != response.isSOAP11()) {
-            	if(axisOutMsgCtx.isSOAP11()) {
-            		SOAPUtils.convertSOAP12toSOAP11(response);
-            	} else {
-            		SOAPUtils.convertSOAP11toSOAP12(response);
-            	}
             }
 
             if (axisOutMsgCtx.getMessageID() != null) {
