@@ -161,7 +161,7 @@ public class ScriptMediator extends AbstractMediator {
      * @param language         the BSF language
      * @param scriptSourceCode the source code of the script
      */
-    public ScriptMediator(String language, String scriptSourceCode,ClassLoader classLoader) {
+    public ScriptMediator(String language, String scriptSourceCode, ClassLoader classLoader) {
         this.language = language;
         this.scriptSourceCode = scriptSourceCode;
         this.setLoader(classLoader);
@@ -178,7 +178,7 @@ public class ScriptMediator extends AbstractMediator {
      * @param function       the function to be invoked
      */
     public ScriptMediator(String language, Map<Value, Object> includeKeysMap,
-                          Value key, String function,ClassLoader classLoader) {
+                          Value key, String function, ClassLoader classLoader) {
         this.language = language;
         this.key = key;
         this.setLoader(classLoader);
@@ -252,11 +252,11 @@ public class ScriptMediator extends AbstractMediator {
         boolean returnValue;
         try {
             //if the engine is Rhino then needs to set the class loader specifically
-             if(language.equals("js")){
-            Context cx = Context.enter();
-            cx.setApplicationClassLoader(this.loader);
+            if (language.equals("js")) {
+                Context cx = Context.enter();
+                cx.setApplicationClassLoader(this.loader);
 
-             }
+            }
 
             Object returnObject;
             if (key != null) {
@@ -278,8 +278,13 @@ public class ScriptMediator extends AbstractMediator {
                     "external " + language + " script" + " : " + key +
                     (function != null ? " function " + function : ""), e, synCtx);
             returnValue = false;
+        } catch (Exception e) {
+            handleException("The script engine returned an Exception executing the " +
+                    "external " + language + " script" + " : " + key +
+                    (function != null ? " function " + function : ""), e, synCtx);
+            returnValue = false;
         } finally {
-            if(language.equals("js")){
+            if (language.equals("js")) {
                 Context.exit();
             }
         }
@@ -297,23 +302,31 @@ public class ScriptMediator extends AbstractMediator {
      */
     private Object mediateWithExternalScript(MessageContext synCtx)
             throws ScriptException, NoSuchMethodException {
-        ScriptEngineWrapper sew = prepareExternalScript(synCtx);
-        XMLHelper helper;
-        if (language.equalsIgnoreCase(JAVA_SCRIPT)) {
-            helper = xmlHelper;
-        } else {
-            helper = XMLHelper.getArgHelper(sew.getEngine());
-        }
-        ScriptMessageContext scriptMC = new ScriptMessageContext(synCtx, helper);
-        processJSONPayload(synCtx, scriptMC);
-        Invocable invocableScript = (Invocable) sew.getEngine();
+        ScriptEngineWrapper sew = null;
+        Object obj;
+        try {
+            sew = prepareExternalScript(synCtx);
+            XMLHelper helper;
+            if (language.equalsIgnoreCase(JAVA_SCRIPT)) {
+                helper = xmlHelper;
+            } else {
+                helper = XMLHelper.getArgHelper(sew.getEngine());
+            }
+            ScriptMessageContext scriptMC = new ScriptMessageContext(synCtx, helper);
+            processJSONPayload(synCtx, scriptMC);
+            Invocable invocableScript = (Invocable) sew.getEngine();
 
-        Object obj = invocableScript.invokeFunction(function, new Object[]{scriptMC});
-        // return engine to front of queue or drop if queue is full (i.e. if getNewScriptEngine() spawns a new engine)
-        pool.offer(sew);
+            obj = invocableScript.invokeFunction(function, new Object[]{scriptMC});
+        } finally {
+            if (sew != null) {
+                // return engine to front of queue or drop if queue is full (i.e. if getNewScriptEngine() spawns a new engine)
+                pool.offer(sew);
+            }
+        }
 
         return obj;
     }
+
 
     /**
      * Perform mediation with static inline script of the given scripting language
@@ -590,13 +603,12 @@ public class ScriptMediator extends AbstractMediator {
     }
 
     public ScriptEngineWrapper getNewScriptEngine() {
-        try {
-            return pool.take();
-        } catch (InterruptedException e) {
-            log.error("Error while taking object from pool");
+        ScriptEngineWrapper scriptEngineWrapper = pool.poll();
+        if (scriptEngineWrapper == null) {
+            scriptEngineWrapper = new ScriptEngineWrapper(engineManager.getEngineByExtension(language));
         }
         // fall back
-        return new ScriptEngineWrapper(engineManager.getEngineByExtension(language));
+        return scriptEngineWrapper;
     }
 
     public boolean isContentAltering() {
