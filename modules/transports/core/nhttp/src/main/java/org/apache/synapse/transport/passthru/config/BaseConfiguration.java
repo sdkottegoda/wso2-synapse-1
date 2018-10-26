@@ -27,7 +27,6 @@ import org.apache.http.params.BasicHttpParams;
 import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
-import org.apache.http.protocol.HTTP;
 import org.apache.synapse.transport.passthru.PassThroughConstants;
 import org.apache.synapse.transport.passthru.jmx.PassThroughTransportMetricsCollector;
 import org.apache.synapse.transport.passthru.util.BufferFactory;
@@ -61,6 +60,8 @@ public abstract class BaseConfiguration {
 
     protected PassThroughConfiguration conf = PassThroughConfiguration.getInstance();
 
+    private Boolean correlationLoggingEnabled = false;
+
     private static final String PASSTHROUGH_THREAD_GROUP = "Pass-through Message Processing Thread Group";
     private static final String PASSTHROUGH_THREAD_ID ="PassThroughMessageProcessor";
 
@@ -89,6 +90,10 @@ public abstract class BaseConfiguration {
 
         httpParams = buildHttpParams();
         ioReactorConfig = buildIOReactorConfig();
+        String sysCorrelationStatus = System.getProperty(PassThroughConstants.CORRELATION_LOGS_SYS_PROPERTY);
+        if (sysCorrelationStatus != null) {
+            correlationLoggingEnabled = sysCorrelationStatus.equalsIgnoreCase("true");
+        }
 
         bufferFactory = new BufferFactory(iOBufferSize, new HeapByteBufferAllocator(), 512);
     }
@@ -183,5 +188,7 @@ public abstract class BaseConfiguration {
         return PassThroughConfiguration.getInstance().getIntProperty(HttpConnectionParams.SO_TIMEOUT,
                 PassThroughConstants.DEFAULT_HTTP_SOCKET_TIMEOUT);
     }
+
+    public Boolean isCorrelationLoggingEnabled(){return correlationLoggingEnabled;}
 
 }

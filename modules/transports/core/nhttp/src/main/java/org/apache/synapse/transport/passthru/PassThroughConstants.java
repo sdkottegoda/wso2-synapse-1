@@ -215,4 +215,20 @@ public class PassThroughConstants {
      * System property to configure verification timeout (iterative verification) in seconds for port.
      */
     public static final String SYSTEMPROP_PORT_CLOSE_VERIFY_TIMEOUT = "synapse.transport.portCloseVerifyTimeout";
+
+    /**
+     * constants for correlation logging
+     */
+    //correlation enable/disable state property in axis2 message context
+    public static final String CORRELATION_LOG_STATE_PROPERTY = "correlationLogState";
+    //property to set the correlation id value in message context and http context
+    public static final String CORRELATION_ID = "correlation_id";
+    //system property to enable/disable correlation logging
+    public static final String CORRELATION_LOGS_SYS_PROPERTY = "enableCorrelationLogs";
+    //property to set the correlation ID as a MDC property in log4J
+    public static final String CORRELATION_MDC_PROPERTY = "Correlation-ID";
+    //correlation logger name in log4J properties
+    public static final String CORRELATION_LOGGER = "correlation";
+    //default header that carries the correlation ID. Header name is configurable at passthru-http.properties
+    public static final String CORRELATION_DEFAULT_HEADER = "activityid";
 }
