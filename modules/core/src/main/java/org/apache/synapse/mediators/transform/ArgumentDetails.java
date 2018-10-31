@@ -21,10 +21,9 @@ package org.apache.synapse.mediators.transform;
  * Class to hold pathType and deepcheck status of arguments.
  */
 public class ArgumentDetails {
-	private String pathType;
-	private boolean deepCheck = true;
-	private boolean isXml = false;
-	private boolean isLiteral = false;
+    private String pathType;
+    private boolean isXml = false;
+    private boolean isLiteral = false;
 
 	public String getPathType() {
 		return pathType;
@@ -34,17 +33,9 @@ public class ArgumentDetails {
 		this.pathType = pathType;
 	}
 
-	public boolean isDeepCheck() {
-		return deepCheck;
-	}
-
-	public void setDeepCheck(boolean deepCheck) {
-		this.deepCheck = deepCheck;
-	}
-
-	public boolean isXml() {
-		return isXml;
-	}
+    public boolean isXml() {
+        return isXml;
+    }
 
 	public void setXml(boolean isXml) {
 		this.isXml = isXml;
