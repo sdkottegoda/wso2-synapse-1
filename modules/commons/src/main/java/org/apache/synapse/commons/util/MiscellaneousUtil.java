@@ -172,22 +172,22 @@ public class MiscellaneousUtil {
                     log.debug("Unable to load file  '" + filePath + "'");
                 }
             }
-		}
-		if (in != null) {
-			try {
-				properties.load(in);
-			} catch (IOException e) {
-				handleException("Error loading properties from a file at : " + filePath, e);
-			} finally {
-				try {
-					in.close();
-				} catch (IOException e) {
-					log.warn("Error while closing the input stream from the file: " + filePath, e);
-				}
-			}
+        }
+        if (in != null) {
+            try {
+                properties.load(in);
+            } catch (IOException e) {
+                handleException("Error loading properties from a file at : " + filePath, e);
+            } finally {
+                try {
+                    in.close();
+                } catch (IOException e) {
+                    log.warn("Error while closing the input stream from the file: " + filePath, e);
+                }
+            }
 
-		}
-		return properties;
+        }
+        return properties;
     }
 
 
