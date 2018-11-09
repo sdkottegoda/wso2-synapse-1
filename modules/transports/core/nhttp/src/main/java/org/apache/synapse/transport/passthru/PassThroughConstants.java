@@ -203,6 +203,7 @@ public class PassThroughConstants {
     public static final String HTTP_OPTIONS = "OPTIONS";
     public static final String HTTP_CONNECT = "CONNECT";
 
+    public static final String MESSAGE_SIZE_VALIDATION_SUM = "MESSAGE_SIZE_VALIDATION_SUM";
     public static final String SOURCE_CONNECTION_DROPPED = "SOURCE_CONNECTION_DROPPED";
 
     //Constant to specify the socket timeout
