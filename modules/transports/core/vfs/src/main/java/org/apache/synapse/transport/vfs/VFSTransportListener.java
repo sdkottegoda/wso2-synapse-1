@@ -18,23 +18,6 @@
 */
 package org.apache.synapse.transport.vfs;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.StringTokenizer;
-
-import javax.mail.internet.ContentType;
-import javax.mail.internet.ParseException;
-import javax.xml.namespace.QName;
-
 import com.hazelcast.core.Hazelcast;
 import com.hazelcast.core.HazelcastInstance;
 import org.apache.axiom.om.OMAttribute;
@@ -77,6 +60,22 @@ import org.apache.synapse.commons.vfs.VFSParamDTO;
 import org.apache.synapse.commons.vfs.VFSUtils;
 import org.wso2.securevault.SecretResolver;
 import org.wso2.securevault.SecureVaultException;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.StringTokenizer;
+import javax.mail.internet.ContentType;
+import javax.mail.internet.ParseException;
+import javax.xml.namespace.QName;
 
 /**
  * The "vfs" transport is a polling based transport - i.e. it gets kicked off at
@@ -300,6 +299,7 @@ public class VFSTransportListener extends AbstractPollingTransportListener<PollT
                 try {
                     children = fileObject.getChildren();
                 } catch (FileNotFolderException ignored) {
+                    // ignore
                 } catch (FileSystemException ex) {
                     log.error(ex.getMessage(), ex);
                 }
@@ -423,9 +423,7 @@ public class VFSTransportListener extends AbstractPollingTransportListener<PollT
                         log.debug("End Sorting the files.");
                     }                 
                     for (FileObject child : children) {
-                        /**
-                         * Before starting to process another file, see whether the proxy is stopped or not.
-                         */
+                        // Before starting to process another file, see whether the proxy is stopped or not.
                         if (entry.isCanceled()) {
                             break;
                         }
@@ -548,6 +546,7 @@ public class VFSTransportListener extends AbstractPollingTransportListener<PollT
                                 }
                         		Thread.sleep(iFileProcessingInterval);
                         	}catch(InterruptedException ie){
+                        	    Thread.currentThread().interrupt();
                         		log.error("Unable to set the interval between file processors." + ie);
                         	}
                         }else if(iFileProcessingCount != null && iFileProcessingCount <= processCount){
