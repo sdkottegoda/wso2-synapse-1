@@ -67,6 +67,7 @@ import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.FileSystemManager;
 import org.apache.commons.vfs2.FileSystemOptions;
 import org.apache.commons.vfs2.FileType;
+import org.apache.commons.vfs2.impl.DefaultFileSystemManager;
 import org.apache.commons.vfs2.impl.StandardFileSystemManager;
 import org.apache.synapse.commons.crypto.CryptoConstants;
 import org.apache.synapse.commons.vfs.FileObjectDataSource;
@@ -141,7 +142,7 @@ public class VFSTransportListener extends AbstractPollingTransportListener<PollT
     public static final String NONE = "NONE";
 
     /** The VFS file system manager */
-    private FileSystemManager fsManager = null;
+    private DefaultFileSystemManager fsManager = null;
 
     private WorkerPool workerPool = null;
 
@@ -285,6 +286,7 @@ public class VFSTransportListener extends AbstractPollingTransportListener<PollT
                 try {
                     Thread.sleep(reconnectionTimeout);
                 } catch (InterruptedException e2) {
+                    Thread.currentThread().interrupt();
                     log.error("Thread was interrupted while waiting to reconnect.", e2);
                 }
             }
@@ -538,6 +540,7 @@ public class VFSTransportListener extends AbstractPollingTransportListener<PollT
                             }
                         }
 
+                        close(child);
                         if(iFileProcessingInterval != null && iFileProcessingInterval > 0){
                         	try{
                                 if (log.isDebugEnabled()) {
@@ -580,8 +583,20 @@ public class VFSTransportListener extends AbstractPollingTransportListener<PollT
             processFailure("Error checking for existence and readability : " + VFSUtils.maskURLPassword(fileURI), e, entry);
         } catch (Exception ex) {
             processFailure("Un-handled exception thrown when processing the file : ", ex, entry);
-        } finally {
-            closeFileSystem(fileObject);
+        }
+    }
+
+    @Override
+    public void destroy() {
+        super.destroy();
+        fsManager.close();
+    }
+
+    private void close(FileObject fileObject) {
+        try {
+            fileObject.close();
+        } catch (FileSystemException e) {
+            log.debug("Error occurred while closing file.", e);
         }
     }
 

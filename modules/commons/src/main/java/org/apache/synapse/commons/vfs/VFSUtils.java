@@ -57,6 +57,49 @@ public class VFSUtils {
      */
     private static final Pattern PASSWORD_PATTERN = Pattern.compile(":(?:[^/]+)@");
 
+    private static final Random randomNumberGenerator = new Random();
+
+    /**
+     * SSL Keystore.
+     */
+    private static final String KEY_STORE = "vfs.ssl.keystore";
+
+    /**
+     * SSL Truststore.
+     */
+    private static final String TRUST_STORE = "vfs.ssl.truststore";
+
+    /**
+     * SSL Keystore password.
+     */
+    private static final String KS_PASSWD = "vfs.ssl.kspassword";
+
+    /**
+     * SSL Truststore password.
+     */
+    private static final String TS_PASSWD = "vfs.ssl.tspassword";
+
+    /**
+     * SSL Key password.
+     */
+    private static final String KEY_PASSWD = "vfs.ssl.keypassword";
+
+    /**
+     * Passive mode
+     */
+    public static final String PASSIVE_MODE = "vfs.passive";
+
+    /**
+     * FTPS implicit mode
+     */
+    public static final String IMPLICIT_MODE = "vfs.implicit";
+
+    public static final String PROTECTION_MODE = "vfs.protection";
+
+
+    private VFSUtils() {
+    }
+
     /**
      * Get a String property from FileContent message
      *
@@ -432,11 +475,14 @@ public class VFSUtils {
 
         HashMap<String, String> schemeFileOptions = new HashMap<String, String>();
         schemeFileOptions.put(VFSConstants.SCHEME, scheme);
-
         try {
+            Map<String, String> queryParams = UriParser.extractQueryParams(fileURI);
+            schemeFileOptions.putAll(queryParams);
             addOptions(scheme, schemeFileOptions, params);
         } catch (AxisFault axisFault) {
             log.error("Error while loading VFS parameter. " + axisFault.getMessage());
+        } catch (FileSystemException e) {
+            log.error("Error while loading scheme query params", e);
         }
 
         return schemeFileOptions;
@@ -462,13 +508,19 @@ public class VFSUtils {
         DelegatingFileSystemOptionsBuilder delegate = new DelegatingFileSystemOptionsBuilder(fsManager);
 
         if (VFSConstants.SCHEME_SFTP.equals(options.get(VFSConstants.SCHEME))) {
-            for (String key: options.keySet()) {
-                for (VFSConstants.SFTP_FILE_OPTION o: VFSConstants.SFTP_FILE_OPTION.values()) {
-                    if (key.equals(o.toString()) && null != options.get(key)) {
-                        delegate.setConfigString(opts, VFSConstants.SCHEME_SFTP, key.toLowerCase(), options.get(key));
+            for (Map.Entry<String, String> entry: options.entrySet()) {
+                for (VFSConstants.SFTP_FILE_OPTION option: VFSConstants.SFTP_FILE_OPTION.values()) {
+                    if (entry.getKey().equals(option.toString()) && null != entry.getValue()) {
+                        delegate.setConfigString(opts, VFSConstants.SCHEME_SFTP,
+                                                 entry.getKey().toLowerCase(),
+                                                 entry.getValue());
                     }
                 }
             }
+        } else if (VFSConstants.SCHEME_FTP.equals(options.get(VFSConstants.SCHEME))) {
+            addFtpConfigs(options, opts);
+        } else if (VFSConstants.SCHEME_FTPS.equals(options.get(VFSConstants.SCHEME))) {
+            addFtpsConfigs(options, opts);
         }
 
         if (options.get(VFSConstants.FILE_TYPE) != null) {
@@ -477,6 +529,52 @@ public class VFSUtils {
         }
 
         return opts;
+    }
+
+    private static void addFtpsConfigs(Map<String, String> options, FileSystemOptions opts) {
+        FtpsFileSystemConfigBuilder configBuilder = FtpsFileSystemConfigBuilder.getInstance();
+        boolean passiveMode = Boolean.parseBoolean(options.get(PASSIVE_MODE));
+        configBuilder.setPassiveMode(opts, passiveMode);
+        boolean implicitMode = Boolean.parseBoolean(options.get(IMPLICIT_MODE));
+        if (implicitMode) {
+            configBuilder.setFtpsType(opts, "implicit");
+        }
+        String protectionMode = options.get(PROTECTION_MODE);
+        if ("P".equalsIgnoreCase(protectionMode)) {
+            configBuilder.setDataChannelProtectionLevel(opts, FtpsDataChannelProtectionLevel.P);
+        } else if ("C".equalsIgnoreCase(protectionMode)) {
+            configBuilder.setDataChannelProtectionLevel(opts, FtpsDataChannelProtectionLevel.C);
+        } else if ("S".equalsIgnoreCase(protectionMode)) {
+            configBuilder.setDataChannelProtectionLevel(opts, FtpsDataChannelProtectionLevel.S);
+        } else if ("E".equalsIgnoreCase(protectionMode)) {
+            configBuilder.setDataChannelProtectionLevel(opts, FtpsDataChannelProtectionLevel.E);
+        }
+        String keyStore = options.get(KEY_STORE);
+        if (keyStore != null) {
+            configBuilder.setKeyStore(opts, keyStore);
+        }
+        String trustStore = options.get(TRUST_STORE);
+        if (trustStore != null) {
+            configBuilder.setTrustStore(opts, trustStore);
+        }
+        String keyStorePassword = options.get(KS_PASSWD);
+        if (keyStorePassword != null) {
+            configBuilder.setKeyStorePW(opts, keyStorePassword);
+        }
+        String trustStorePassword = options.get(TS_PASSWD);
+        if (trustStorePassword != null) {
+            configBuilder.setTrustStorePW(opts, trustStorePassword);
+        }
+        String keyPassword = options.get(KEY_PASSWD);
+        if (keyPassword != null) {
+            configBuilder.setKeyPW(opts, keyPassword);
+        }
+    }
+
+    private static void addFtpConfigs(Map<String, String> options, FileSystemOptions opts) {
+        boolean passiveMode = Boolean.parseBoolean(options.get("vfs.passive"));
+        FtpFileSystemConfigBuilder.getInstance().setPassiveMode(opts, passiveMode);
+
     }
 
     private static Integer getFileType(String fileType) {
